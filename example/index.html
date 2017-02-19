@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UIBuilder test</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css?family=Raleway:300" rel="stylesheet">
+</head>
+<body>
+<div id="container"></div>
+<script src="../dist/uibuilder.min.js"></script>
+<script src="ui.js"></script>
+
+<script>
+    window.addEventListener('load', function()
+    {
+        var container = document.getElementById('container')
+        var users = UIBuilder('usersList').build(container);
+
+        users.link.html('View source on Github');
+        users.link.href('https://github.com/Romario5/UIBuilder');
+
+        UIBuilder('user').withEach = function(){
+            this.delBtn.html("&#10005;");
+            this.delBtn.addEventListener('click', deleteUser);
+        };
+
+        var user_1 = users.list.addChild();
+        user_1.photo.src('images/user_photo_1.png');
+        user_1.name.html('Miku Hatsune');
+
+        var user_2 = users.list.addChild();
+        user_2.photo.src('images/user_photo_2.png');
+        user_2.name.html('Megurine Luka');
+
+        var user_3 = users.list.addChild();
+        user_3.photo.src('images/user_photo_3.png');
+        user_3.name.html('ALYS');
+    });
+    function deleteUser(){this.remove();}
+</script>
+</body>
+</html>
