@@ -14,7 +14,7 @@ implements jQuery syntax.
 
 ###Example:
 Lets we have some list of users (see example in code).
-The interface of the list wi describe as one scheme:
+The interface of the list we describe as one scheme:
 
 ```js
 UIBuilder.UI.register({
