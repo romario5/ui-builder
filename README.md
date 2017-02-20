@@ -54,7 +54,7 @@ Then lets we have some container node in which we want to build our interface:
 <div id="container"></div>
 ```
 
-Finally all that we must do is to told UIBuilder 
+Finally all that we must to do is say UIBuilder 
 to build right scheme in the right container (node or another element of the scheme instance):
 ```js
 var container = document.getElementById('container')
