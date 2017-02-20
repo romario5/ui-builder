@@ -6,7 +6,7 @@ DOM structure blocks.
 ###Main concept
 The idea is in reusing predefined interface parts schemes for building 
 instances of this parts. All data generated is stored in the objects and 
-can be quickly got by referenc. 
+can be quickly got by reference. 
 
 Also objects that represents single DOM nodes has few very useful methods
 implements jQuery syntax.
