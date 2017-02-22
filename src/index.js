@@ -2,11 +2,14 @@ var UI = require('./UI');
 var Settings = require('./settings');
 
 
-window[Settings.globalName] = function(uiname){
+var UIBuilder = function(uiname){
     return UI.getByName(uiname);
 };
-var UIBuilder = window[Settings.globalName];
-
+UIBuilder.register = UI.register;
 UIBuilder.UI = UI;
 UIBuilder.UIInstance = require('./UIInstance');
 UIBuilder.UIElement = require('./UIElement');
+
+window[Settings.globalName] = UIBuilder;
+
+module.exports = UIBuilder;

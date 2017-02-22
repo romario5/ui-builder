@@ -1,5 +1,5 @@
 var globalName = require('./settings').globalName;
-
+var LList = require('llist');
 
 /* Constructor of the elements that UIInstance contains within */
 function UIElement(params)
@@ -42,17 +42,18 @@ UIElement.prototype = {constructor : UIElement};
 UIElement.prototype.addEventListener = function(eventName, callback)
 {
     if(eventName.slice(0,2) !== 'on') eventName = 'on' + eventName;
-    if(this.events[eventName] === undefined || this.events[eventName] === null) this.events[eventName] = [];
+    if(this.events[eventName] === undefined || this.events[eventName] === null) this.events[eventName] = new LList();
     if(this.events[eventName].indexOf(callback) >= 0) return console.warn('Widgets: handler for the event "'+eventName+'" already added.');
     this.events[eventName].push(callback);
     this.node[eventName] = this.runEvent;
 };
 
 UIElement.prototype.runEvent = function(e){
-    var handlers = this.uielement.events['on'+e.type];
-    for(var i = 0; i < handlers.length; i++){
-        handlers[i].call(this.uiinstance, e);
-    }
+    var handlers = this.uielement.events['on' + e.type];
+    var uiinstance = this.uiinstance;
+    handlers.withEach(function(data){
+        data.call(uiinstance, e);
+    });
 };
 
 UIElement.prototype.removeChildren = function(){
@@ -226,4 +227,4 @@ UIElement.prototype.removeClass = function(className)
 };
 
 
-exports.constructor = UIElement;
+module.exports = UIElement;

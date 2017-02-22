@@ -1,4 +1,4 @@
-UIBuilder.UI.register({
+UIBuilder.register({
     name : 'usersList',
     scheme : {
         wrap : {
@@ -14,7 +14,7 @@ UIBuilder.UI.register({
 });
 
 
-UIBuilder.UI.register({
+UIBuilder.register({
     name : 'user',
     scheme : {
         wrap : {

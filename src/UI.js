@@ -42,10 +42,10 @@ UI.prototype = {constructor : UI};
  * */
 UI.prototype.build = function(container, atStart)
 {
-    var inst = new UIInstance.constructor();
+    var inst = new UIInstance();
     inst.ui(this);
     if(atStart === undefined || atStart === null) atStart = false;
-    if(container instanceof UIElement.constructor){
+    if(container instanceof UIElement){
         inst.parent(container);
         container = container.node;
     }
@@ -104,7 +104,7 @@ UI.prototype.build = function(container, atStart)
             params = parseParameters('');
         }
         params.name = name;
-        var el = new UIElement.constructor(params);
+        var el = new UIElement(params);
         el.node.uiinstance = inst;
         el.node.uielement = el;
         inst[name] = el;
@@ -196,6 +196,6 @@ function getByName(name)
 
 
 
-exports.consructor = UI;
-exports.register = register;
-exports.getByName = getByName;
+UI.register = register;
+UI.getByName = getByName;
+module.exports = UI;

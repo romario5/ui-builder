@@ -35,8 +35,8 @@ UIInstance.prototype.remove = function()
 UIInstance.prototype.parentUII = function()
 {
     var parent = this.parent();
-    if(parent instanceof UIElement.constructor) return parent.uiinstance;
+    if(parent instanceof UIElement) return parent.uiinstance;
     return null;
 };
 
-exports.constructor = UIInstance;
+module.exports = UIInstance;

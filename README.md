@@ -17,7 +17,7 @@ Lets we have some list of users (see example in code).
 The interface of the list wi describe as one scheme:
 
 ```js
-UIBuilder.UI.register({
+UIBuilder.register({
     name : 'usersList',
     scheme : {
         wrap : {
@@ -37,7 +37,7 @@ All users will be contained in the list property.
 To describe structure of the single user we will use next scheme:
 
 ```js
-UIBuilder.UI.register({
+UIBuilder.register({
     name : 'user',
     scheme : {
         wrap : {
@@ -60,7 +60,20 @@ to build right scheme in the right container (node or another element of the sch
 var container = document.getElementById('container')
 var users = UIBuilder('usersList').build(container);
 ```
-And now we can add few users...
+
+Lets configure our single user UI and add some events.
+```js
+function deleteUser(){
+    this.remove();// this - an UIInstance exemplar of the event target element.
+}
+UIBuilder('user').withEach = function(){
+    this.delBtn.html("&#10005;");
+    this.delBtn.addEventListener('click', deleteUser);
+};
+````
+Now newly created user will have delete button with the cross icon and click event handler. 
+
+And then we can add few users...
 ```js
 var user_1 = users.list.addChild();             // First user...
 user_1.photo.src('images/user_photo_1.png');

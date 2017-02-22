@@ -21,8 +21,11 @@
     "url": "https://github.com/Romario5/UIBuilder/issues"
   },
   "homepage": "https://github.com/Romario5/UIBuilder#readme",
-  "dependencies": {
+  "devDependencies": {
     "browserify": "^14.1.0",
     "uglify-js": "^2.7.5"
+  },
+  "dependencies": {
+    "llist": "^1.0.1"
   }
 }
