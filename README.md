@@ -6,7 +6,7 @@ DOM structure blocks.
 ###Main concept
 The idea is in reusing predefined interface parts schemes for building 
 instances of this parts. All data generated is stored in the objects and 
-can be quickly got by referenc. 
+can be quickly got by reference. 
 
 Also objects that represents single DOM nodes has few very useful methods
 implements jQuery syntax.
@@ -14,7 +14,7 @@ implements jQuery syntax.
 
 ###Example:
 Lets we have some list of users (see example in code).
-The interface of the list wi describe as one scheme:
+The interface of the list we describe as one scheme:
 
 ```js
 UIBuilder.register({
@@ -54,7 +54,7 @@ Then lets we have some container node in which we want to build our interface:
 <div id="container"></div>
 ```
 
-Finally all that we must do is to told UIBuilder 
+Finally all that we must to do is say UIBuilder 
 to build right scheme in the right container (node or another element of the scheme instance):
 ```js
 var container = document.getElementById('container')
