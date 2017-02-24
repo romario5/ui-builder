@@ -24,11 +24,11 @@ UIInstance.prototype.remove = function()
     var parent = this.parent();
 	var scheme = this.ui().scheme;
 	
-	if(!parent instanceof UIElement){
+	if(parent instanceof UIElement !== true){
 		for(var p in scheme) this[p].node.parentNode.removeChild(this[p].node);
 		return;
 	}
-	
+
     for(var i = 0; i < parent.children.length; i++)
     {
         if(parent.children[i] === this){
