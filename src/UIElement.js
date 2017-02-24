@@ -227,4 +227,13 @@ UIElement.prototype.removeClass = function(className)
 };
 
 
+
+UIElement.prototype.css = function(style)
+{
+	for(var p in style){
+		this.node.style[p] = style[p];
+	}
+};
+
+
 module.exports = UIElement;
