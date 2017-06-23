@@ -1,6 +1,6 @@
 {
   "name": "ui-builder",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Frontend library to generate user interface.",
   "main": "src/index.js",
   "scripts": {
