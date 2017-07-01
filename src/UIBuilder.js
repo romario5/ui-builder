@@ -1,4 +1,4 @@
-UIBuilder = (function()
+var UIBuilder = (function()
 {
 
 var uilist = {};
@@ -6,48 +6,44 @@ var uilist = {};
 
 function getByName(name)
 {
-    if(uilist.hasOwnProperty(name)) return uilist[name];
+    if(uilist.hasOwnProperty(name)){
+		return uilist[name];
+	}
     return null;
 }
 
 
 
 
-_uibuilder = function(uiName)
+function _uibuilder(uiName)
 {
     return getByName(uiName);
 }
 
 
+_uibuilder.events = {};
+EventsImplementation.call(_uibuilder);
 
 
 
 
+/*          Exceptions
+	___________________________
+	---------------------------
 
+	This section contains exceptions definition.
+	Each new exception constructor should use base Exception constructor.
+	Use log() function to print exception message in the "cache" section.
+	Also you can use "name" property in your constructor that will be 
+	printed after prefix and before main message.
 
+	Usage example:
 
-
-
-
-
-
-
-//         Exceptions
-// ___________________________
-// ---------------------------
-//
-// This section contains exceptions definition.
-// Each new exception constructor should use base Exception constructor.
-// Use log() function to print exception message in the "cache" section.
-// Also you can use "name" property in your constructor that will be 
-// printed after prefix and before main message.
-//
-// Usage example:
-// 
-// try{
-//     if( earth === 'flat' ) throw new Exception('Some message...');
-// }catch(error){ error.log(); }
-// 
+	try{
+	   if( earth === 'flat' ) throw new Exception('Some message...');
+    }catch(error){ error.log(); }
+ 
+*/ 
 
 var LogPrefix = 'UIBuilder:';
 
@@ -138,20 +134,32 @@ function UIDataException(message)
 
 
 
+function EventException(message)
+{
+	Exception.call(this);
+	this.name = 'Events';
+}
 
 
 
 
 
+/*           Settings
+    ___________________________
+    ---------------------------
 
+    Settings object stores options which are used by the framework like RegExp used for parsing, etc.
+    To change some settings it's necessary to use setters which are defined in this section.
+    If you're going to add some settings, please implement setters for it.
+    For handling errors - write your own exception.
+    Settings object is not available as property of exported object. It's private.
 
-
-
-
-
-//         Settings
-// ___________________________
-// ---------------------------
+    Available settings:
+   
+    regexp_... - RegExp used for parsing scheme rules. Setter - setParsingRule().
+	<< If you implements your own settings - add it here >>
+	 
+*/
 
 var Settings = {
     regexp_id        : /#\w+[_-\w]*/ig,
@@ -159,14 +167,19 @@ var Settings = {
     regexp_class     : /\.\w+[_-\w\s]*/ig,
     regexp_attribute : /\[(\w+[_-\w]*=[^;=]+[_-\w\s]*(\s*;\s*)?)+\]/ig,
     regexp_property  : /\((\w+[_-\w]*=[^;=]+[_-\w\s]*(\s*;\s*)?)+\)/ig,
-    regexp_childUI   : /\|\w+[_-\w]*/ig
+    regexp_childUI   : /\|\w+[_-\w]*/ig,
+	regexp_include   : /<<<\w*[_-\w\s]+[_-\w\d\s]*/ig
 };
 
 
+
 /**
- * 
+ * Setter of the rules parsing RegExp.
+ * @param subjectOrRules (string)
+ * @param reglarExpresstion (RegExp | Object)
+ * @throws InvalidParsingRuleException
  */
-_uibuilder.setParsingRule = function(subjectOrRules, RegularExpression)
+_uibuilder.setParsingRule = function(subjectOrRules, regularExpression)
 {
     try{
 
@@ -176,9 +189,9 @@ _uibuilder.setParsingRule = function(subjectOrRules, RegularExpression)
                 throw InvalidParsingRuleException('Rule ' + subjectOrRules + ' is absent in the settings.');
 
             if(a.constructor !== RegExp) 
-                throw InvalidParsingRuleException('Trying to assign ' + typeof RegularExpression + ' as parsing regular expression for ' + subjectOrRules + '.');
+                throw InvalidParsingRuleException('Trying to assign ' + typeof regularExpression + ' as parsing regular expression for ' + subjectOrRules + '.');
             
-            Settings['regexp_' + parameters] = regExp;
+            Settings['regexp_' + parameters] = regularExpression;
 
 
         }else if(typeof subjectOrRules === 'object'){
@@ -186,7 +199,7 @@ _uibuilder.setParsingRule = function(subjectOrRules, RegularExpression)
             for(var p in subjectOrRules){
 
                 if(Settings.hasOwnProperty('regexp_' + p)){
-                    if(a.constructor !== RegExp) throw InvalidParsingRuleException('Trying to assign ' + typeof RegularExpression + ' as parsing regular expression for ' + subjectOrRules + '.');
+                    if(a.constructor !== RegExp) throw InvalidParsingRuleException('Trying to assign ' + typeof regularExpression + ' as parsing regular expression for ' + subjectOrRules + '.');
                     Settings['regexp_' + p] = subjectOrRules[p];
 
                 }else{
@@ -207,6 +220,46 @@ _uibuilder.setParsingRule = function(subjectOrRules, RegularExpression)
 
 
 
+
+/*     Evens implementation
+    ___________________________
+    ---------------------------
+
+    Implementation of the events.
+	Call this constructor on prototype to add methods.
+	Also instance for which prototype events will be added must has 'events' property.
+	To fire event use triggerEvent method. 
+*/
+
+
+
+function EventsImplementation()
+{	
+	this.addEventListener = function(eventName, handler)
+	{
+		if( typeof handler !== 'function' ) throw new EventException('Type of handler is not a function');
+		if( !this.events.hasOwnProperty(eventName) ) this.events[eventName] = [];
+		if( this.events[eventName].indexOf(handler) >= 0) return;
+		this.events[eventName].push(handler);
+	}
+	
+	this.removeEventListener = function(eventName, handler)
+	{
+		if( typeof handler !== 'function' ) throw new EventException('Type of handler is not a function');
+		if( !this.events.hasOwnProperty(eventName) ) return;
+		var index = this.events[eventName].indexOf(handler);
+		if(index < 0) return;
+		this.events[eventName].splice(index, 1);
+	}
+	
+	this.triggerEvent = function(eventName, data)
+	{
+		if( !this.events.hasOwnProperty(eventName) ) return;
+		for(var i = 0; i < this.events[eventName].length; i++){
+			this.events[eventName][i].call(this, data)
+		}
+	}
+}
 
 
 
@@ -259,10 +312,11 @@ function parseParameters(str)
     var _result = {};
 
     // Define tag name, id, class and child UI using regular expressions.
-    _result.tag   = str.match(Settings.regexp_tagName);
-    _result.id    = str.match(Settings.regexp_id);
-    _result.class = str.match(Settings.regexp_class);
-    _result.child = str.match(Settings.regexp_childUI);
+    _result.tag     = str.match(Settings.regexp_tagName);
+    _result.id      = str.match(Settings.regexp_id);
+    _result.class   = str.match(Settings.regexp_class);
+    _result.child   = str.match(Settings.regexp_childUI);
+	_result.include = str.match(Settings.regexp_include);
 
 
 
@@ -304,10 +358,11 @@ function parseParameters(str)
     }
 
     // Cut special characters from the start.
-    if(_result.tag    !== null) _result.tag    = _result.tag[0].slice(1).trim();
-    if(_result.id     !== null) _result.id     = _result.id[0].slice(1).trim();
-    if(_result.class  !== null) _result.class  = _result.class[0].slice(1).trim();
-    if(_result.child  !== null) _result.child  = _result.child[0].slice(1).trim();
+    if(_result.tag     !== null) _result.tag     = _result.tag[0].slice(1).trim();
+    if(_result.id      !== null) _result.id      = _result.id[0].slice(1).trim();
+    if(_result.class   !== null) _result.class   = _result.class[0].slice(1).trim();
+    if(_result.child   !== null) _result.child   = _result.child[0].slice(1).trim();
+    if(_result.include !== null) _result.include = _result.include[0].slice(3).trim();
 
     return _result;
 }
@@ -328,6 +383,9 @@ function UI(options)
     this.rules    = options.hasOwnProperty('rules') ? options.rules : {};
     this.prefix   = options.hasOwnProperty('prefix') ? options.prefix : '';
     this.name     = options.hasOwnProperty('name') ? options.name : '';
+    this.css      = options.hasOwnProperty('css') ? options.css : null;
+	
+	this.cssLoaded = false;
     this.withEach = null;
     this.events = {};
 
@@ -352,29 +410,7 @@ UI.prototype = {constructor : UI};
  * - change
  * - unregister
  */
-UI.prototype.addEventListener = function(eventName, handler)
-{
-    if(typeof handler !== 'function') 
-        return console.warn(LogPrefix + ' ' + 'Trying to set non-function as event listener.');
-
-    if( !this.events.hasOwnProperty(eventName) ) this.events[eventName] = [];
-    if( this.events[eventName].indexOf(handler) >= 0 ) return;
-    this.events[eventName].push(handler);
-};
-
-
-/**
- * Runs handlers for the specified event.
- * @param eventName (string)
- */
-UI.prototype.triggerEvent = function(eventName, instance)
-{
-    if( !this.events.hasOwnProperty(eventName) ) return false;
-    for(var i = 0; i < this.events[eventName].length; i++ ){
-        if(typeof this.events[eventName][i] === 'function') 
-            this.events[eventName][i].call(this, instance);
-    };  
-};
+EventsImplementation.call(UI.prototype);
 
 
 /**
@@ -415,22 +451,35 @@ function buildScheme(instance, ui, scheme, target, atStart)
                 }else{
                     params = {
                         id         : null,
-                        class      : ui.name + '-' + elementName,
+                        class      : ui.name.replace(/[^\w\d_-]/gi, '_').replace(/__/g, '_').toLowerCase() + '-' + elementName,
                         tag        : 'div',
                         child      : null,
+                        include    : null,
                         attributes : {},
                         properties : {}
                     };
                 } 
             }
-            if(params.class === '' || params.class === null) params.class = ui.name + '-' + elementName,
+			
+			// Make default class if not set.
+            if(params.class === '' || params.class === null) 
+				params.class = ui.name.replace(/[^\w\d_-]/gi, '_').replace(/__/g, '_').toLowerCase() + '-' + elementName;
+			
             params.name = elementName;
 
+			var element;
+			if(params.include !== null && uilist.hasOwnProperty(params.include)){
+				element = _uibuilder(params.include).build(target);
+			}else{
+				element = new UIElement(params);
+				element.node.uiinstance = instance;
+			}
+			
+			
             // Create element.
-            var element = new UIElement(params);
             instance[elementName] = element;
-            element.uiinstance = instance;
-            element.node.uiinstance = instance;
+			element.uiinstance = instance;
+				
 
 
             // Set parent UIElement and define target node.
@@ -441,24 +490,26 @@ function buildScheme(instance, ui, scheme, target, atStart)
                 targetNode = target;
             }
 
-            // Append element to the container node.
-            if(atStart){
-                var first = targetNode.firstChild;
-                if(first !== null){
-                    targetNode.insertBefore(element.node, first);
-                }else{
-                    targetNode.appendChild(element.node);
-                }
-            }else{
-                targetNode.appendChild(element.node);
-            }
-
-            // Add nested schemes.
-            if(typeof scheme[elementName] === 'object'){
-                for(var p in scheme[elementName]){
-                    buildScheme(instance, ui, scheme[elementName], element);
-                }
-            }
+			if(params.include === null){
+				// Append element to the container node.
+				if(atStart){
+					var first = targetNode.firstChild;
+					if(first !== null){
+						targetNode.insertBefore(element.node, first);
+					}else{
+						targetNode.appendChild(element.node);
+					}
+				}else{
+					targetNode.appendChild(element.node);
+				}
+				
+				// Add nested schemes.
+				if(typeof scheme[elementName] === 'object'){
+					for(var p in scheme[elementName]){
+						buildScheme(instance, ui, scheme[elementName], element);
+					}
+				}
+			}
         }
     }
 }
@@ -493,11 +544,36 @@ UI.prototype.build = function(container, atStart)
     // Run withEach action if specified.
     if(typeof this.withEach === 'function') this.withEach.call(_instance);
 
+	
+	if( !this.cssLoaded && this.css !== null){
+		var head  = document.getElementsByTagName('head')[0];
+		var link  = document.createElement('link');
+		link.rel  = 'stylesheet';
+		link.type = 'text/css';
+		link.href = this.css;
+		link.media = 'all';
+		head.appendChild(link);
+		this.cssLoaded = true;
+	}
+	
+	
     // Run onbuild event handlers.
     this.triggerEvent('build', _instance);
 
     return _instance;
 };
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -530,6 +606,7 @@ function register(data)
         throw new UIRegistrationException('Rules for a new UI "' + data.name + '" is ' + (typeof data.rules) + '. Object required.');
 
     uilist[data.name] = new UI(data);
+	_uibuilder.triggerEvent('register', uilist[data.name]);
 }
 _uibuilder.register = register;
 
@@ -546,7 +623,7 @@ _uibuilder.register = register;
 
 
 
-//             UIInstance
+//           UIInstance
 // ___________________________
 // ---------------------------
 
@@ -554,7 +631,7 @@ _uibuilder.register = register;
 
 /* Constructor of the UI instance */
 function UIInstance(){
-
+	this.events = {};
 }
 
 UIInstance.prototype = {constructor : UIInstance};
@@ -604,6 +681,8 @@ UIInstance.prototype.load = function(data, replace, atStart)
 };
 
 
+// Implements events for UIInstance.
+EventsImplementation.call(UIInstance.prototype);
 
 
 
@@ -622,11 +701,11 @@ UIInstance.prototype.load = function(data, replace, atStart)
 function UIElement(params)
 {
     // set parameters
-    this.name  = (params.name !== undefined) ? params.name : null;
-    this.child = (params.child !== undefined) ? params.child : null; // string or null
-    this.class = (params.class !== undefined) ? params.class : null  // string or null
-    this.id    = (params.id !== undefined) ? params.id : null        // string or null
-    this.tag   = (params.tag !== null && params.tag !== undefined) ? params.tag.toLowerCase() : 'div';
+    this.name    = (params.name !== undefined) ? params.name : null;
+    this.child   = (params.child !== undefined) ? params.child : null; // string or null
+    this.class   = (params.class !== undefined) ? params.class : null  // string or null
+    this.id      = (params.id !== undefined) ? params.id : null        // string or null
+    this.tag     = (params.tag !== null && params.tag !== undefined) ? params.tag.toLowerCase() : 'div';
 
     // create node
     if(this.tag === '') this.tag = 'div';
@@ -660,6 +739,8 @@ function UIElement(params)
 UIElement.prototype = {constructor : UIElement};
 
 
+
+// Implements specific events stystem.
 UIElement.prototype.addEventListener = function(eventName, callback)
 {
     if(eventName.slice(0,2) !== 'on') eventName = 'on' + eventName;
@@ -1018,39 +1099,6 @@ UIData.prototype.parameters = function(parameters)
     return this;
 };
 
-UIData.prototype.addEventListener = function(eventName, handler)
-{
-    if(typeof handler !== 'function') return false;
-    var handlers;
-    if( !this.events.hasOwnProperty(eventName) ) {
-        handlers = [];
-        this.events[eventName] = handlers;
-    }else{
-        handlers = this.events[eventName];
-    }
-    if( handlers.indexOf(handler) < 0 ) handlers.push(handler);
-    return true;
-};
-
-UIData.prototype.triggerEvent = function(eventName, argument)
-{
-    if( !this.events.hasOwnProperty(eventName) ) return false;
-    var handlers = this.events[eventName];
-    for(var i = 0; i < handlers.length; i++){
-        handlers[i].call(this, argument);
-    }
-    return i > 0;
-};
-
-UIData.prototype.removeEventListener = function(eventName, handler)
-{
-    if( !this.events.hasOwnProperty(eventName) ) return false;
-    var handlers = this.events[eventName];
-    var index = handlers.indexOf(handler);
-    if( index >= 0 ) handlers.splice(index, 1);
-    return true;
-};
-
 
 UIData.prototype.fetch = function(callback)
 {
@@ -1063,13 +1111,20 @@ UIData.prototype.fetch = function(callback)
 };
 
 
+// Add events to the UIData.
+EventsImplementation.call(UIData.prototype);
+
+
+
 _uibuilder.UIData = UIData;
 
 
 
 
 
-
+/**
+ * Events are already implemented for UIData, so it's not necessary to add it here again.
+ */
 function UIDataAJAX(params)
 {
     UIData.call(this, params);
@@ -1078,6 +1133,8 @@ function UIDataAJAX(params)
 }
 UIDataAJAX.prototype = Object.create(UIData.prototype);
 UIDataAJAX.prototype.constructor = UIData;
+
+
 _uibuilder.UIDataAJAX = UIDataAJAX;
 
 
