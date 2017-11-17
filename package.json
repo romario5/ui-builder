@@ -4,7 +4,7 @@
   "description": "Frontend library to generate user interface.",
   "main": "src/index.js",
   "scripts": {
-    "build": "browserify src/index.js | uglifyjs -o dist/uibuilder.min.js"
+    "build": "uglifyjs src/UIBuilder.js -o dist/uibuilder.min.js"
   },
   "repository": {
     "type": "git",
