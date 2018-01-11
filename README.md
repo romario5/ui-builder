@@ -13,77 +13,137 @@ implements jQuery syntax.
 
 
 ### Example:
-Lets we have some list of users (see example in code).
-The interface of the list we describe as one scheme:
+Lets create classic tasks list: input field and adding button. User can input text in the field and add task by clicking button.
+#### The tasts list interface:
 
 ```js
-UIBuilder.register({
-    name : 'usersList',
+UI.register({
+    name : 'Tasks list',
+	
     scheme : {
         wrap : {
-            list : '|user',
+            list : '|Task', // Task - is the name of UI that will be used as regular item of list.
             toolbar : {
-                link : '@a [target=_blank]',
+                titleInput : '@input [type = text]',
+				addButton : '@button [type = button] (html = Add task)'
             }
         }
     },
-    rules : {
-        wrap : '#list-wrap .dark-theme'
+    
+    // Some parameters
+    parameters : {
+        width : 400,
+        height: 600
+    },
+	
+    // Set interface appearance
+    styles : {
+        wrap : {
+            display: 'flex',
+            flexDirection : 'column',
+            margin: '40px auto',
+            backgroundColor: '#fff',
+            boxShadow : '0 0 5px rgba(0,0,0,0.4)',
+            padding: '20px'
+        },
+        
+        // And so on...
+    },
+	
+    // Function that will be called on each instance creation
+    onrender : function(inst, params)
+    {
+        // Apply parameters.
+        inst.wrap.css({
+            width : params.width + 'px',
+            height : params.height + 'px'
+        });
+        
+        // Add click event handler to the adding button
+        inst.addButton.on('click', function(){
+            var text = inst.titleInput.val().trim();
+            if(text === '') return;
+            var newItem = inst.list.addOne().load({title : text});
+            
+            // Show sliding animation
+            newItem.wrap.css({height:0});
+            newItem.wrap.slideDown();
+
+            // And empty input box
+            inst.titleInput.val('');
+        });
     }
 });
 ```
 
-All users will be contained in the list property.
-To describe structure of the single user we will use next scheme:
+#### Then lets describe scheme of the single task record:
 
 ```js
-UIBuilder.register({
-    name : 'user',
+UI.register({
+    name : 'Task',
+	
     scheme : {
         wrap : {
-            photo : '@img [width=50;height=50]',
-            name : '@span',
-            delBtn : ''
+            checkbox : {
+				chk : '@input [type = checkbox]',
+				box : '@div'
+			},
+            title : '@span',
+            deleteButton : "(html = &#x2715;)"
         }
+    },
+	
+    // Additional rules
+    rules : {
+        checkbox : '@label'
+    },
+	
+    // Again some styles...
+    styles : {
+        wrap : {
+            display: 'flex',
+            flexShrink: 0,
+            margin: '5px',
+            backgroundColor: '#f6f6f6'
+        },
+        
+        // And so on...
+    },
+	
+    // Lets set some manipulations with newly created instances.
+    onrender : function(inst)
+    {
+        // Add handler for deleting task.
+        inst.deleteButton.on('click', function(taskInst){
+            
+            // Show collapsing animation.
+            taskInst.wrap.animate({
+                height : 0,
+                opacity : 0,
+                marginTop : 0,
+                marginBottom : 0
+            }, 250, function(){taskInst.remove();});   
+        });
     }
 });
 ```
 
-Then lets we have some container node in which we want to build our interface:
+Then lets we have some container node in which we want to render our interface:
 ```html
 <div id="container"></div>
 ```
 
-Finally all that we must to do is say UIBuilder 
-to build right scheme in the right container (node or another element of the scheme instance):
+Now we can render our tasks list:
 ```js
-var container = document.getElementById('container')
-var users = UIBuilder('usersList').build(container);
+var TasksList = UI('Tasks list').renderTo('#container', {width : 600, height : 400});
 ```
 
-Lets configure our single user UI and add some events.
-```js
-function deleteUser(){
-    this.remove();// this - an UIInstance exemplar of the event target element.
-}
-UIBuilder('user').withEach = function(){
-    this.delBtn.html("&#10005;");
-    this.delBtn.addEventListener('click', deleteUser);
-};
-````
-Now newly created user will have delete button with the cross icon and click event handler. 
+Also this lib can a lot:
+- Gathering forms (and not only forms)
+- Animating functions
+- Data providers (basic generator, ajax data fetcher)
+- Loading data to the elements or whole instance structures from given data or data providers.
+- Common UI solutions such as tabs, spinner, dropdowns.
+- Validation (will be implemented later)
 
-And then we can add few users...
-```js
-var user_1 = users.list.addChild();             // First user...
-user_1.photo.src('images/user_photo_1.png');
-user_1.name.html('Miku Hatsune');
- 
-var user_2 = users.list.addChild();             // Second user...
-user_2.photo.src('images/user_photo_2.png');
-user_2.name.html('Megurine Luka');
- 
-var user_3 = users.list.addChild();             // Third user...
-user_3.photo.src('images/user_photo_3.png');
-user_3.name.html('ALYS');
-```
+More documentation will be ready soon. Enjoy :)
