@@ -196,3 +196,39 @@ UI.register({
 		});
 	}
 });
+
+
+
+
+
+UI.registerSpinner({
+	name : 'Round spinner',
+	
+	scheme : {
+		wrap : {
+			
+		}
+	},
+	
+	styles : {
+		wrap : {
+			width : '200px',
+			height : '200px',
+			backgroundColor : '#900'
+		}
+	},
+	
+	onrender : function(inst, params, event){
+		console.log(event);
+	},
+	
+	onfadein : function(inst, event){
+		console.log(event);
+	},
+	
+	onfadeout : function(inst, event){
+		console.log(event);
+	}
+	
+	
+});
