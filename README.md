@@ -22,7 +22,7 @@ UI.register({
 	
     scheme : {
         wrap : {
-            list : '|Task',
+            list : '|Task', // Task - is the name of UI that will be used as regular item of list.
             toolbar : {
                 titleInput : '@input [type = text]',
                 addButton : '@button [type = button] (html = Add task)'
