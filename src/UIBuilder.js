@@ -5,7 +5,7 @@
  * var layout = UI('Main layout').renderTo('body').load(data);
  *
  * @author Roman Muravchuk <eas.roma@gmail.com>
- * @version 1.0.0
+ * @version 2.0.0
  * @date 15.11.2017
  */
 
@@ -557,7 +557,11 @@ var UIBuilder = (function () {
         this.__.url = null;
 
         // Parameters to be used on rendering.
-        this.__.params = options.hasOwnProperty('parameters') ? options.parameters : {};
+		if(options.hasOwnProperty('parameters')){
+			this.__.params = options.parameters;
+		}else if(options.hasOwnProperty('params')){
+			this.__.params = options.params;
+		}
 
         if (typeof this.scheme !== 'object')
             throw new InvalidSchemeException('Scheme must be an object. ' + typeof this.scheme + ' given.');
@@ -843,30 +847,19 @@ var UIBuilder = (function () {
 
         instance.__.params = params;
 
-        // Run "onrender" action if specified.
-        if (typeof this.onrender === 'function') {
-            this.onrender(instance, params);
-        }
-
         // Trigger 'render' event.
-        this.triggerEvent('render', instance, params);
+		var event = new UIEvent('render');
+		event.target = this;
+        this.triggerEvent('render', instance, params, event);
 
         return instance;
     };
-
-
-    /**
-     * Registers new UI.
-     * @param data (object)
-     * {
-     *      name   : (string),
-     *      scheme : (object),
-     *      rule   : (object)
-     *      prefix : (string)
-     * }
-     */
-    function register(data) {
-        if (!data.hasOwnProperty('name'))
+	
+	
+	
+	function checkUIParameters(data)
+	{
+		if (!data.hasOwnProperty('name'))
             throw new UIRegistrationException('Name of a new UI is not defined.');
 
         if (typeof data.name !== 'string')
@@ -885,7 +878,21 @@ var UIBuilder = (function () {
 
         if (typeof data.rules !== 'object')
             throw new UIRegistrationException('Rules for a new UI "' + data.name + '" is ' + (typeof data.rules) + '. Object required.');
+	}
 
+
+    /**
+     * Registers new UI.
+     * @param data (object)
+     * {
+     *      name   : (string),
+     *      scheme : (object),
+     *      rule   : (object)
+     *      prefix : (string)
+     * }
+     */
+    function register(data) {
+        checkUIParameters(data);
         uilist[data.name] = new UI(data);
         _uibuilder.triggerEvent('register', uilist[data.name]);
     }
@@ -1004,7 +1011,7 @@ var UIBuilder = (function () {
         event.target = this;
         this.triggerEvent('load', data, event);
 
-        // Stop loading if event was cancelled by preventDefault() method.
+        // Stop loading if event was canceled by preventDefault() method.
         if (event.canceled) return this;
 
 
@@ -1508,7 +1515,17 @@ var UIBuilder = (function () {
 
 
     UIElement.prototype.contentHeight = function () {
-        return this.__.node.scrollHeight + this.__.node.scrollTop;
+		var node = this.__.node;
+		var s = getComputedStyle(node);
+		// Store initial height styles.
+		var h = node.style.cssText.match(/height\s*:\s*[\d\w%]+/i);
+		h = h === null ? '' : h[0];
+		// Set height to auto and store inner height.
+		node.style.height = 'auto';
+		var height = node.clientHeight;
+		// Restore height style.
+		node.style.cssText = node.style.cssText.replace(/height\s*:\s*auto/i, h);
+		return height;
     };
 
 
@@ -1928,6 +1945,16 @@ var UIBuilder = (function () {
 
 
     /**
+     * Resets values of the inputs/selects inside the UIElement.
+     * @param {boolean} compact
+     * @returns {{}}
+     */
+    UIElement.prototype.resetValues = function () {
+		
+    };
+
+
+    /**
      * Gathers data of the UIElement.
      * @param {boolean} compact
      * @returns {{}}
@@ -1937,6 +1964,7 @@ var UIBuilder = (function () {
         var data = {};
         gatherElementData(this, data, data, null, true);
         if (compact) compactData(data);
+		console.log(data);
         return data;
     };
 
@@ -2025,7 +2053,7 @@ var UIBuilder = (function () {
             for (var i = 0; i < childNodes.length; i++) {
                 if (childNodes[i] === undefined || childNodes[i].uielement === undefined) continue;
                 var tmp = {};
-                gatherElementData(childNodes[i].uielement, tmp, null, curData, propName);
+                gatherElementData(childNodes[i].uielement, tmp, curData, propName, true);
                 for (var p in tmp) {
                     data[p] = tmp[p];
                 }
@@ -2715,8 +2743,90 @@ var UIBuilder = (function () {
      * Also animation can be defined for fading effect.
      * This section will be done later.
      */
-
-
+	function Spinner(params)
+	{
+		// Extending UI.
+		UI.call(this, params);
+	}
+	Spinner.prototype = Object.create(UI.prototype);
+	
+	
+	/**
+	 * Renders spinner inside target element.
+	 * Fades in just after rendering.
+	 * Node that if you want to apply your own fading effects 
+	 * please use onfadein event in the parameters.
+	 */
+	Spinner.prototype.showInside = function(target)
+	{
+		var s = this.renderTo(target);
+		
+		var event = new UIEvent('fadein');
+		event.target = this;
+		this.triggerEvent('fadein',s , event);
+		
+		// If event was not prevented - use default fading effect.
+		if(!event.canceled){
+			var root = s.getRootElement();
+			if (root !== null) {
+				root.css({opacity : 0}).fadeIn();
+			}
+		}
+	};
+	
+	
+	/**
+	 * Hides all spinners inside target element.
+	 * Fades out just before removing.
+	 * Node that if you want to apply your own fading effects 
+	 * please use onfadeout event in the parameters.
+	 */
+	Spinner.prototype.hideInside = function(target)
+	{
+		var children;
+		if(target instanceof UIElement){
+			children = target.children();
+		}else{
+			children = target.childNodes;
+		}
+		
+		for(var i = 0; i < children.length; i++){
+			var child = children[i];
+			if(!(child instanceof UIInstance)){
+				child = children[i].uiinstance;
+				if(!(child instanceof UIInstance)) continue;
+			}
+			if(child.UI() !== this) continue;
+			
+			var event = new UIEvent('fadeout');
+			event.target = this;
+			this.triggerEvent('fadeout',child , event);
+			
+			// If event was not prevented - use default fading effect and then remove spinner instance.
+			if(!event.canceled){
+				(function(){
+					var root = child.getRootElement();
+					if (root !== null) {
+						root.animate({
+							opacity : 0
+						}, 250, function(){
+							child.remove();
+						});
+					}
+				})();
+			}
+		}
+	};
+	
+	
+	// Add unique function for registering spinners.
+	_uibuilder.registerSpinner = function(data){
+		checkUIParameters(data);
+        uilist[data.name] = new Spinner(data);
+        _uibuilder.triggerEvent('register', uilist[data.name]);
+	};
+	
+	
 
 
     /**

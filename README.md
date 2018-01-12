@@ -25,7 +25,7 @@ UI.register({
             list : '|Task',
             toolbar : {
                 titleInput : '@input [type = text]',
-				addButton : '@button [type = button] (html = Add task)'
+                addButton : '@button [type = button] (html = Add task)'
             }
         }
     },
@@ -85,9 +85,9 @@ UI.register({
     scheme : {
         wrap : {
             checkbox : {
-				chk : '@input [type = checkbox]',
-				box : '@div'
-			},
+                chk : '@input [type = checkbox]',
+                box : '@div'
+            },
             title : '@span',
             deleteButton : "(html = &#x2715;)"
         }
