@@ -280,7 +280,8 @@ var UIBuilder = (function () {
         regexp_class: /\.\w+[_\-\w\s\d]*/ig,
         regexp_attribute: /\[(\w+[_\-\w]*\s*=\s*[^;=]+[/_\-\w\d.\s]*(\s*;\s*)?)+\]/ig,
         regexp_property: /\((\w+[_\-\w]*\s*=\s*[^;=]+[/_\-\w\d.\s]*(\s*;\s*)?)+\)/ig,
-        regexp_childUI: /\|\s*\w*[_\-\w\s]+[_\-\w\d\s]*/ig,
+        regexp_params: /\{(\w+[_\-\w]*\s*=\s*[^;=]+[#\(\),/_\-\w\d.\s]*(\s*;\s*)?)+\}/ig,
+        regexp_childUI: /\|\s*\w*[_\-\w\s/]+[_\-\w\d\s]*/ig,
         regexp_include: /<<<\s*\w*[_\-\w\s]+[_\-\w\d\s]*/ig,
 
         // Flat that indicates whether logging is enabled.
@@ -464,6 +465,29 @@ var UIBuilder = (function () {
      */
     function parseParameters(str) {
         var _result = {};
+		
+		
+		// Parse parameters.
+        _result.parameters = {};
+        var prm = str.match(Settings.regexp_params);
+        str = str.replace(Settings.regexp_params, '');
+		
+
+        // Get parameters array
+        (prm !== null && prm.length > 0) ? prm = prm[0].slice(1, -1) : prm = '';  // Cut the brackets.
+        prm = prm.split(';');
+
+        // Put parameters into the result.
+        for (i = 0; i < prm.length; i++) {
+            p = prm[i].split('=');
+            if (p.length === 2) {
+                if (p[0].trim() === '') continue;
+                _result.parameters[p[0].trim()] = p[1].trim();
+            }
+        }
+		
+		
+		
 
         // Parse attributes.
         _result.attributes = {};
@@ -637,7 +661,8 @@ var UIBuilder = (function () {
                             child: null,
                             include: null,
                             attributes: {},
-                            properties: {}
+                            properties: {},
+                            parameters: {}
                         };
                     }
                 }
@@ -663,7 +688,12 @@ var UIBuilder = (function () {
                 if (params.include !== null) {
 
                     if (uilist.hasOwnProperty(params.include)) {
-                        element.__.inclusion = element.add(uilist[params.include]);
+						for(var p in uilist[params.include].__.params){
+							if(!params.parameters.hasOwnProperty(p)){
+								params.parameters[p] = uilist[params.include].__.params[p];
+							}
+						}
+                        element.__.inclusion = element.add(uilist[params.include], params.parameters);
                     } else {
                         throw new RenderingException('Required for including UI "' + params.include + '" is not registered yet.');
                     }
@@ -970,6 +1000,16 @@ var UIBuilder = (function () {
 
 
     /**
+     * Returns parameters of the instance.
+     * @returns {UI|*}
+     * @constructor
+     */
+    UIInstance.prototype.params = function () {
+        return this.__.params;
+    };
+
+
+    /**
      * Returns parent UIInstance.
      * @return UIInstance|null
      */
@@ -1160,6 +1200,7 @@ var UIBuilder = (function () {
         for (var p in params.attributes) {
             this.__.node.setAttribute(p, params.attributes[p]);
         }
+		
         // Set properties.
         for (var p in params.properties) {
 
@@ -1171,7 +1212,6 @@ var UIBuilder = (function () {
             } else {
                 this.__.node[p] = params.properties[p];
             }
-
         }
 
         // set class and id
@@ -1260,6 +1300,36 @@ var UIBuilder = (function () {
     UIElement.prototype.children = function () {
         return this.__.children;
     };
+	
+	
+	/**
+	 * Returns all child elements even if they are not instances of the child UI.
+	 * @return {UIElement[]}
+	 */
+	UIElement.prototype.getAllChildElements = function()
+	{
+		var c = this.__.node.childNodes;
+		var res = [];
+		for(var i = 0, len = c.length; i < len; i++){
+			if(c[i].uielement instanceof UIElement) res.push(c[i].uielement);
+		}
+		return res;
+	};
+	
+	
+	/**
+	 * Returns all nearby elements (siblings) even if they are not instances of the child UI.
+	 * @return {UIElement[]}
+	 */
+	UIElement.prototype.getAllNearbyElements = function()
+	{
+		var c = this.__.node.parentNode.childNodes;
+		var res = [];
+		for(var i = 0, len = c.length; i < len; i++){
+			if(c[i].uielement instanceof UIElement && c[i].uielement !== this) res.push(c[i].uielement);
+		}
+		return res;
+	};
 
 
     var nativeEvents = ['submit', 'abort', 'beforeinput', 'blur', 'click', 'compositionen',
@@ -1667,21 +1737,27 @@ var UIBuilder = (function () {
      * @param {int} duration Fading duration in miliseconds.
      * @param {string} displayAs If set will be used to set display
      * css property before animation start.
+	 * @param {function} callback
      * @returns {UIElement} (itself)
      * @see fadeOut()
      * @see fadeToggle()
      */
-    UIElement.prototype.fadeIn = function (duration, displayAs) {
+    UIElement.prototype.fadeIn = function (duration, displayAs, callback) {
         if (typeof duration === 'string' && displayAs === undefined) {
             displayAs = duration;
-        }
+        }else if(typeof duration === 'function' && callback === undefined){
+			callback = duration;
+		}else if(typeof displayAs === 'function' && callback === undefined){
+			callback = displayAs;
+		}
+		
 
         // Default duration.
         if (typeof duration !== 'number') duration = 250;
 
         if (this.isVisible() && this.css('opacity') === 1) return this;
         if (displayAs !== undefined) this.css({display: displayAs});
-        this.animate({opacity: 1}, duration);
+        this.animate({opacity: 1}, duration, callback);
         this.__.fx = 'fadeIn';
         return this;
     };
@@ -1692,12 +1768,19 @@ var UIBuilder = (function () {
      * @param {int} duration Fading duration in miliseconds.
      * @param {boolean} hideOnEnd If true the css display property will be set to 'none'
      * on animation finish.
+	 * @param {function} callback
      * @returns {UIElement} (itself)
      * @see fadeIn()
      * @see fadeToggle()
      */
-    UIElement.prototype.fadeOut = function (duration, hideOnEnd) {
+    UIElement.prototype.fadeOut = function (duration, hideOnEnd, callback) {
         if (this.isHidden() || this.css('opacity') === 0) return this;
+		
+		if(typeof duration === 'function' && callback === undefined){
+			callback = duration;
+		}else if(typeof hideOnEnd === 'function' && callback === undefined){
+			callback = hideOnEnd;
+		}
 
         // Default duration.
         if (typeof duration !== 'number') duration = 250;
@@ -1705,7 +1788,7 @@ var UIBuilder = (function () {
         // Default duration.
         if (hideOnEnd === undefined) hideOnEnd = true;
 
-        this.animate({opacity: 0}, duration);
+        this.animate({opacity: 0}, duration, callback);
         this.__.fx = 'fadeOut';
 
         var el = this;
@@ -1726,15 +1809,16 @@ var UIBuilder = (function () {
      * css property before animation start in case of fadeIn() method will be applied.
      * If fadeOut() method and displayAs property is specified - element will be hidden after
      * animation finish.
+	 * @param {function} callback
      * @returns {UIElement} (itself)
      * @see fadeIn()
      * @see fadeOut()
      */
-    UIElement.prototype.fadeToggle = function (duration, displayAs) {
+    UIElement.prototype.fadeToggle = function (duration, displayAs, callback) {
         if (this.isHidden() || this.css('opacity') === 0 || this.__.fx === 'fadeOut') {
-            this.fadeIn(duration, displayAs);
+            this.fadeIn(duration, displayAs, callback);
         } else {
-            this.fadeOut(duration, displayAs !== undefined)
+            this.fadeOut(duration, displayAs, callback);
         }
         return this;
     };
@@ -2168,7 +2252,24 @@ var UIBuilder = (function () {
     UIElement.prototype.makeTabFor = function (container) {
         this.__.tabContainer = container;
         container.hide();
+		var siblings = this.getAllNearbyElements();
         this.on('click', tabClickHandler);
+		
+		for(var i = 0, len = siblings.length; i < len; i++){
+			if(siblings[i].isTab()){
+				return this;
+			}
+		}
+		
+		this.addClass('active');
+		container
+			.addClass('active')
+			.css({
+				display: 'flex',
+				opacity: 1
+			});
+		
+		return this;
     };
 
 
@@ -2188,26 +2289,18 @@ var UIBuilder = (function () {
         if (!this.isTab()) return;
 
         // Toggle tabs class.
-        var children = this.__.node.parentNode.childNodes;
-        for (var i = 0, len = children.length; i < len; i++) {
-            children[i].classList.remove('active');
+        var c = this.getAllNearbyElements();
+        for (var i = 0, len = c.length; i < len; i++) {
+            if(c[i].isTab()){
+				c[i].removeClass('active');
+				c[i].__.tabContainer.fadeOut(100, function(){
+					this.hide();
+				});
+			}
         }
         this.addClass('active');
 
 
-        // Toggle content visibility.
-        children = this.__.tabContainer.__.node.parentNode.childNodes;
-        for (var i = 0, len = children.length; i < len; i++) {
-            if (children[i].classList.contains('active')) {
-                if (children[i].hasOwnProperty('uielement')) {
-                    children[i].uielement.fadeOut(100, true);
-
-                } else {
-                    children[i].style.display = 'none';
-                }
-                children[i].classList.remove('active');
-            }
-        }
 
         var container = this.__.tabContainer;
 
@@ -2737,8 +2830,8 @@ var UIBuilder = (function () {
      * ---------------------------
      *
      * Spinner is a special UI that provides few special methods:
-     * showIn() - Shows spinner in the special container (UIElement or node).
-     * remove() - Smoothly hides spinner and after removes it.
+     * showInside(target) - Shows spinner in the given container (UIElement or node).
+     * hideInside(target) - Smoothly hides all spinners in the given container and after removes it.
      *
      * Also animation can be defined for fading effect.
      * This section will be done later.
@@ -2757,9 +2850,9 @@ var UIBuilder = (function () {
 	 * Node that if you want to apply your own fading effects 
 	 * please use onfadein event in the parameters.
 	 */
-	Spinner.prototype.showInside = function(target)
+	Spinner.prototype.showInside = function(target, params)
 	{
-		var s = this.renderTo(target);
+		var s = this.renderTo(target, params);
 		
 		var event = new UIEvent('fadein');
 		event.target = this;
@@ -2789,11 +2882,14 @@ var UIBuilder = (function () {
 		}else{
 			children = target.childNodes;
 		}
-		
+		var arr = []
 		for(var i = 0; i < children.length; i++){
-			var child = children[i];
+			arr[i] = children[i];
+		}
+		for(var i = 0; i < arr.length; i++){
+			var child = arr[i];
 			if(!(child instanceof UIInstance)){
-				child = children[i].uiinstance;
+				child = child.uiinstance;
 				if(!(child instanceof UIInstance)) continue;
 			}
 			if(child.UI() !== this) continue;
@@ -2810,7 +2906,7 @@ var UIBuilder = (function () {
 						root.animate({
 							opacity : 0
 						}, 250, function(){
-							child.remove();
+							if(child !== undefined) child.remove();
 						});
 					}
 				})();
@@ -2830,11 +2926,24 @@ var UIBuilder = (function () {
 
 
     /**
+     *           Dropdowns
+     * ___________________________
+     * ---------------------------
+     *
+     * Methods that used for implementing dropdown mechanic.
+	 * For marking dropdowns used speciall class - .dropdown
+	 * If dropdown is shown - .shown class will be used.
+     */
+	
+	
+
+
+    /**
      *           Routes
      * ___________________________
      * ---------------------------
      *
-     * Routes are the objects that encapsulates app state.
+     * Routes are the objects that encapsulates application state.
      * This section will be done later.
      */
 

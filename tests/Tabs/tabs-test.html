@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>UIBuilder | Tabs test</title>
+		<script src="../../src/UIBuilder.js"></script>
+		<script src="data.js"></script>
+		<script src="ui.js"></script>
+		<style>
+			section{
+				max-width: 800px;
+				padding: 10px;
+				margin: 10px;
+				position: relative;
+			}
+			p{ 
+				position: relative;
+				font-family: monospace;
+				margin-bottom: 15px;
+			}
+			h1{
+				margin-bottom: 10px ;
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<section id="test-1">
+			<h1>Default behavior</h1>
+			<p>
+				Ensure that all tabs instance works stand-alone.
+			</p>
+			<script>
+				var cont = document.getElementById('test-1');
+				UI('Tabs').renderTo(cont).load(data);
+				UI('Tabs').renderTo(cont).load(data);
+				UI('Tabs').renderTo(cont).load(data);
+			</script>
+		</section>
+	</body>
+<html/>
