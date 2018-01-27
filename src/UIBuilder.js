@@ -17,7 +17,7 @@ var UIBuilder = (function () {
      (function(){
          var head  = document.getElementsByTagName('head')[0];
          var styleTag  = document.createElement('style');
-         styleTag.innerHTML = '* {margin : 0; padding : 0}';
+         styleTag.innerHTML = '* {margin : 0; padding : 0;}';
          var comment = document.createComment('--- RESET ---');
          head.appendChild(comment);
          head.appendChild(styleTag);
@@ -41,7 +41,7 @@ var UIBuilder = (function () {
      * @return {string}
      */
     function makeClassName(str) {
-        return splitByUpperCase(str).join('-').replace(' ', '-').toLowerCase();
+        return splitByUpperCase(str).join('-').replace(/([a-zA-Z_])\s+([a-zA-Z_])/g, "$1-$2").toLowerCase();
     }
 
 
@@ -370,6 +370,7 @@ var UIBuilder = (function () {
             if (!this.__.events.hasOwnProperty(eventName)) this.__.events[eventName] = [];
             if (this.__.events[eventName].indexOf(handler) >= 0) return;
             this.__.events[eventName].push(handler);
+            return this;
         };
 
         // Add pseudonym.
@@ -388,6 +389,7 @@ var UIBuilder = (function () {
             var index = this.__.events[eventName].indexOf(handler);
             if (index < 0) return;
             this.__.events[eventName].splice(index, 1);
+            return this;
         };
 
         // Add pseudonym.
@@ -445,11 +447,18 @@ var UIBuilder = (function () {
 
             if (typeof scheme[p] === 'object') {
                 cloneSchemeLinear(scheme[p], target);
-                target[p] = {children: scheme[p]};
+                target[p] = {
+					name : p,
+					rules : '',
+					children: scheme[p]
+				};
 
             } else if (typeof scheme[p] === 'string') {
-                target[p] = scheme[p];
-                target[p] = {children: scheme[p]};
+                target[p] = {
+					name : p,
+					rules : scheme[p],
+					children: null
+				};
 
             } else {
                 throw new InvalidSchemeException('Value of the elemend must be string or object.');
@@ -596,6 +605,12 @@ var UIBuilder = (function () {
         } catch (e) {
             error(e);
         }
+		
+		for(var p in this.elements){
+			if(this.rules.hasOwnProperty(p) && this.elements[p].rules === ''){
+				this.elements[p].rules = this.rules[p];
+			}
+		}
 
         for (var p in options) {
             if (p.slice(0, 2) === 'on' && typeof options[p] === 'function') {
@@ -735,7 +750,15 @@ var UIBuilder = (function () {
             }
         }
     }
-
+	
+	
+	
+	UI.prototype.getRootElement = function ()
+	{
+		var topLevel = Object.keys(this.scheme);
+        return topLevel.length === 1 ? this.elements[topLevel[0]] : null;
+	};
+	
 
     /**
      * Renders UI into container.
@@ -749,9 +772,9 @@ var UIBuilder = (function () {
     UI.prototype.renderTo = function (container, atStart, params) {
         var instance = new UIInstance(); // Create new UI instance.
 
-        instance.__.ui = this; // Set ui property.
+        instance.__.ui = this; // Set UI property.
 
-        // Set params if atStart flag is missing.
+        // Set parameters if atStart flag is missing.
         if (typeof atStart === 'object' && typeof params !== 'object') params = atStart;
 
         // Set flag if instance should be built at the start or at the end.
@@ -770,105 +793,13 @@ var UIBuilder = (function () {
         } catch (e) {
             error(e);
         }
+		
 
-        // Create <style/> tag if css property specified and styles are not loaded yet.
+        // Create <style/> tag if CSS property specified and styles are not loaded yet.
         if (!this.cssLoaded && this.css !== null) {
-
-            var cssText = '';
-
-            // Compose styles.
-            for (var elName in this.css) {
-
-                var elStyles = this.css[elName];
-
-                // Check if element exists in the UI.
-                if (!instance.hasOwnProperty(elName)) {
-
-                    // At symbol at the start indicate abot media query or animation, so use it as is.
-                    if (elName[0] === '@') {
-
-                        cssText += elName + "{\n";
-                        // Loop through css properties.
-                        for (var p in elStyles) {
-
-                            if (typeof elStyles[p] === 'string') {
-                                cssText += '    ' + makeClassName(p) + ': ' + elStyles[p] + ";\n";
-                            } else if (typeof elStyles[p] === 'object') {
-                                value = '    ' + p + " {\n";
-                                for (var s in elStyles[p]) {
-                                    value += '        ' + makeClassName(s) + ': ' + elStyles[p][s] + ";\n";
-                                }
-                                value += "    }\n";
-                                cssText += value;
-                            }
-
-                        }
-                        cssText += "}\n";
-
-                        continue;
-                    } else {
-                        warn('Rendering error. Style target "' + elName + '" is absent in the "' + this.name + '" UI.');
-                        continue;
-                    }
-
-                }
-
-
-                var el = instance[elName];
-
-                // Define css selector of the element.
-                var selector = el.__.id !== null ? '#' + el.__.id : '.' + el.__.class.split(' ').join('.');
-
-                // If selector contains class - complement it with parent class.
-                if (selector[0] === '.') {
-                    var topParent = el.findTopLocalParent();
-                    if (topParent !== null) {
-                        selector = (topParent.__.id !== null ? '#' + topParent.__.id : '.' + topParent.__.class.split(' ').join('.')) + ' ' + selector;
-                    }
-                }
-                cssText += selector + "{\n";
-                // Loop through css properties.
-                for (var p in elStyles) {
-                    if (p[0] === '.' || p[0] === ':' || p[0] === ' ') {
-                        continue;
-                    }
-                    cssText += '    ' + makeClassName(p) + ': ' + elStyles[p] + ";\n";
-                }
-                cssText += "}\n";
-
-                // Process included styles.
-                for (var p in elStyles) {
-                    var sel = selector;
-                    if (typeof elStyles[p] !== 'object') continue;
-                    if (p[0] === '.' || p[0] === ':' || p[0] === ' ') {
-                        sel += p;
-                    } else {
-                        continue;
-                    }
-
-                    cssText += sel + "{\n";
-                    for (var prop in elStyles[p]) {
-                        var s = elStyles[p][prop];
-                        if (prop === 'content') s = "'" + s + "'";
-                        cssText += '    ' + makeClassName(prop) + ': ' + s + ";\n";
-                    }
-                    cssText += "}\n";
-                }
-            }
-
-            var head = document.getElementsByTagName('head')[0];
-            var styleTag = document.createElement('style');
-            styleTag.innerHTML = cssText;
-
-            // Add comment if logging is enabled.
-            if (Settings.logging) {
-                var comment = document.createComment('--- ' + this.name + ' ---');
-                head.appendChild(comment);
-            }
-
-            head.appendChild(styleTag);
-            this.cssLoaded = true;
+			this.createStyles();
         }
+		
 
         if (typeof params !== 'object') params = {};
         for (var p in this.__.params) {
@@ -884,6 +815,118 @@ var UIBuilder = (function () {
 
         return instance;
     };
+	
+	
+	
+	UI.prototype.generateCSS = function(data, parentSelector)
+	{
+		if(parentSelector === undefined) parentSelector = '';
+		var res = [];
+		
+		for(var elName in data)
+		{
+			var styles = data[elName];
+			var cssText = '';
+			var selector;
+			
+			// Check if element exists in the UI.
+			if (!this.elements.hasOwnProperty(elName) && elName[0] === '@') {
+				
+				// Process CSS animation.
+				if(elName.slice(0, 10) === '@keyframes'){
+					cssText += elName + "{\n";
+					for (var p in styles) {
+						if (typeof styles[p] === 'string') {
+							cssText += '    ' + makeClassName(p) + ': ' + (styles[p] === '' ? '""' : styles[p]) + ";\n";
+						} else if (typeof styles[p] === 'object') {
+							value = '    ' + p + " {\n";
+							for (var s in styles[p]) {
+								value += '        ' + makeClassName(s) + ': ' + styles[p][s] + ";\n";
+							}
+							value += "    }\n";
+							cssText += value;
+						}
+					}
+					cssText += "}\n";
+					res.push(cssText);
+				
+				// Otherwise generate nested styles in case it is media query, print or something else.
+				}else if(typeof styles === 'object'){
+					cssText += parentSelector + elName + "{\n";
+					cssText += this.generateCSS(styles);
+					cssText += "}\n";
+					res.push(cssText);
+				}
+				continue;
+			}
+			
+			// Make selector.
+			if(this.elements.hasOwnProperty(elName)){
+				var params = parseParameters(this.elements[elName].rules);
+				selector = params.id !== null ? '#' + params.id : '.' + (params.class !== null ? params.class.split(' ').join('.') : makeClassName(elName));	
+				selector = ' ' + selector;
+			}else{
+				selector = makeClassName(elName);
+				//warn('Styles rendering issue. Style target "' + elName + '" is absent in the "' + this.name + '" UI.');
+			}
+			
+			// Make root selector to encapsulate styles in the instance UI.
+			var rootSelector = makeClassName(this.name);
+			var root = this.getRootElement();
+			if(root !== null){
+				var params = parseParameters(root.rules);
+				var rootClass = params.class !== null ? params.class.split(' ').join('.') : makeClassName(root.name);
+				if(root === this.elements[elName]){
+					selector = '';
+				}
+				var rootSelector = params.id !== null ? '#' + params.id : '.' + makeClassName(this.name) + '.' + rootClass;
+			}
+			// Don't use root selector if it already presented.
+			if(parentSelector.indexOf(rootSelector) >= 0 || selector.indexOf(rootSelector) >= 0) rootSelector = '';
+			
+			var index = res.length;
+			res.push('');
+				
+			cssText += ((rootSelector + ' ' + parentSelector).trim() + selector).replace('  ', ' ').replace(' :', ':') + "{\n";
+			for(var styleName in styles){
+				var style = styles[styleName];
+				
+				if(typeof style === 'string' || typeof style === 'number'){
+					cssText += '    ' + makeClassName(styleName) + ': ' + (style === '' ? '""' : style) + ";\n";
+					
+				}else if(style instanceof StyleGetter){
+					cssText += '    ' + makeClassName(styleName) + ': ' + style.getValue() + ";\n";
+					
+				}else if(typeof style === 'object'){
+					var obj = {};
+					obj[styleName] = style;
+					res.push(this.generateCSS(obj, parentSelector + selector));
+				}
+			}
+			cssText += "}\n";
+			res[index] = cssText;
+		}
+		return res.join("\n");
+	}
+	
+	
+	UI.prototype.createStyles = function()
+	{
+		var head = document.getElementsByTagName('head')[0];
+		var styleTag = document.createElement('style');
+		styleTag.setAttribute('data-ui', this.name);
+		styleTag.ui = this;
+		styleTag.innerHTML = this.generateCSS(this.css);
+
+		// Add comment if logging is enabled.
+		if (Settings.logging) {
+			var comment = document.createComment('--- ' + this.name + ' ---');
+			head.appendChild(comment);
+		}
+
+		head.appendChild(styleTag);
+		this.cssLoaded = true;
+	}
 	
 	
 	
@@ -1045,13 +1088,17 @@ var UIBuilder = (function () {
         if (typeof data !== 'object') {
             //warn('Instance data loading error: invalid argument. Object is required but ' + typeof data + ' given.');
         }
+		
+		// Trigger event on the UI.
+        var event = new UIEvent('load');
+        event.target = this.__.ui;
+        this.__.ui.triggerEvent('load', this, data, event);
+        if (event.canceled) return this;
 
-
+		// Trigger event on the instance.
         var event = new UIEvent('load');
         event.target = this;
         this.triggerEvent('load', data, event);
-
-        // Stop loading if event was canceled by preventDefault() method.
         if (event.canceled) return this;
 
 
@@ -1153,7 +1200,7 @@ var UIBuilder = (function () {
      * @see load()
      * @see gatherData()
      */
-    function UIElement(params) {
+    function UIElement(params){
         // Define service property that encapsulates hidden data.
         Object.defineProperty(this, '__', {
             value: {},
@@ -1511,7 +1558,8 @@ var UIBuilder = (function () {
     UIElement.prototype.hasAttr = function (name) {
         return this.__.node.hasAttribute(name);
     };
-
+	
+	
     UIElement.prototype.prop = function (name, value) {
         if (value === undefined) return this.__.node[name];
         this.__.node[name] = value;
@@ -1592,7 +1640,8 @@ var UIBuilder = (function () {
 		h = h === null ? '' : h[0];
 		// Set height to auto and store inner height.
 		node.style.height = 'auto';
-		var height = node.clientHeight;
+		//var height = node.clientHeight;
+		var height = parseInt(window.getComputedStyle(node).getPropertyValue('height').replace(/[^.\d]/i, ''));
 		// Restore height style.
 		node.style.cssText = node.style.cssText.replace(/height\s*:\s*auto/i, h);
 		return height;
@@ -1604,18 +1653,22 @@ var UIBuilder = (function () {
      * @param {int} duration Animation duration in miliseconds (default is 250).
      * @return {UIElement} (itself)
      */
-    UIElement.prototype.slideDown = function (duration) {
+    UIElement.prototype.slideDown = function (duration, callback) {
         if (typeof duration !== 'number') duration = 250;
 
-        this.css({overflow : 'hidden'});
+		if(this.isHidden()) this.css({'height' : 0});
+        this.css({overflow : 'hidden', display : 'flex'});
 
         this.animate({height: this.contentHeight()}, duration, function () {
             this.css({height: 'auto'});
+			if(typeof callback === 'function') callback.call(this);
         });
         this.__.fx = 'slideDown';
 
         return this;
     };
+	
+	
 
 
     /**
@@ -1623,13 +1676,13 @@ var UIBuilder = (function () {
      * @param {integer} duration Animation duration in miliseconds (default is 250).
      * @return {UIElement} (itself)
      */
-    UIElement.prototype.slideUp = function (duration) {
+    UIElement.prototype.slideUp = function (duration, callback) {
         // Exit if element is already expanded.
         if (this.outerHeight() === 0 || this.isHidden()) return this;
 
         if (typeof duration !== 'number') duration = 250
 
-        this.animate({height: 0}, duration);
+        this.animate({height: 0}, duration, callback);
         this.__.fx = 'slideUp';
 
         return this;
@@ -1641,14 +1694,14 @@ var UIBuilder = (function () {
      * @param {integer} duration Animation duration in miliseconds (default is 250).
      * @return {UIElement} (itself)
      */
-    UIElement.prototype.slideToggle = function (duration) {
+    UIElement.prototype.slideToggle = function (duration, callback) {
         if (typeof duration !== 'number') duration = 250;
 
         // Exit if element is already collapsed.
         if (this.outerHeight() === 0 || this.isHidden() || this.__.fx === 'slideUp') {
-            this.slideDown(duration);
+            this.slideDown(duration, callback);
         } else {
-            this.slideUp(duration);
+            this.slideUp(duration, callback);
         }
 
         return this;
@@ -1913,8 +1966,7 @@ var UIBuilder = (function () {
         // Set default values.
         if (typeof replace !== 'boolean') replace = true;
         if (typeof atStart !== 'boolean') atStart = false;
-
-
+		
         // If UIData (data provider) is given through "data" argument
         // use fetch() method and then load given data using load() method.
         if (data instanceof UIData) {
@@ -2048,7 +2100,6 @@ var UIBuilder = (function () {
         var data = {};
         gatherElementData(this, data, data, null, true);
         if (compact) compactData(data);
-		console.log(data);
         return data;
     };
 
@@ -2329,8 +2380,10 @@ var UIBuilder = (function () {
      * UIData to which they was attached.
      *
      * Events that can be triggered:
+     * - complete (When data fetching process is complete)
      * - dataready (When data is successfully fetched)
      * - error (If error is occurred)
+	 * - progress (If a part of all data was fetched. Percentage of the data done must be passed in the second argument.)
      *
      * @param {function} callback
      * @see UIData
@@ -2433,26 +2486,18 @@ var UIBuilder = (function () {
     }
 
 
-    /**
-     *        Collections
-     * ____________________________
-     * ----------------------------
-     * Will be implemented later :)
-     *
-     * @param items
-     * @constructor
-     */
-    function Collection(items) {
-        this.items = Array.isArray(items) ? [] : items;
+
+
+
+
+
+    function websocketCollector()
+    {
+
     }
 
-    Collection.prototype = Object.create(UIElement.prototype)
 
-    Collection.prototype.remove = function () {
-        for (var i = 0, len = this.items.length; i < len; i++) {
-            this.items[i].remove();
-        }
-    };
+
 
 
 
@@ -2531,6 +2576,9 @@ var UIBuilder = (function () {
      * @returns {UIData}
      */
     UIData.prototype.parameters = function (parameters) {
+		if(parameters === undefined){
+			return this._parameters;
+		}
         this._parameters = parameters;
         return this;
     };
@@ -2567,10 +2615,17 @@ var UIBuilder = (function () {
     _uibuilder.UIData = UIData;
 
 
+
+
+
+
+
+
     /**
      * Events are already implemented for UIData, so it's not necessary to add it here again.
      */
-    function UIDataAjax(params) {
+    function UIDataAjax(params)
+    {
         UIData.call(this, params);
         this.url = params.hasOwnProperty('url') ? params.url : '';
         this.method = 'POST';
@@ -2590,9 +2645,228 @@ var UIBuilder = (function () {
         writeable: false
     });
     UIDataAjax.__.events = {};
-
-
     _uibuilder.UIDataAjax = UIDataAjax;
+
+
+
+
+
+
+
+
+    function UIDataWS(params)
+    {
+        UIData.call(this, params);
+        this.ws = params.ws;
+        this.collector = UIWebSocketCollector;
+    }
+    UIDataWS.prototype = Object.create(UIData.prototype);
+    UIDataWS.prototype.constructor = UIData;
+
+    // Add events to the UIDataAjax object globally.
+    addEventsImplementation.call(UIDataWS);
+    Object.defineProperty(UIDataWS, '__', {
+        value: {},
+        configurable: false,
+        enumerable: false,
+        writeable: false
+    });
+    UIDataWS.__.events = {};
+    _uibuilder.UIDataWS = UIDataWS;
+
+
+    function UIWebSocketCollector(callback)
+    {
+        var _this = this;
+        this.ws.send(this._parameters, function(data){
+            callback.call(_this, data);
+            _this.triggerEvent('dataready', _this, data);
+        });
+    }
+
+
+
+
+    function UIWebSocket(params)
+    {
+        if(!window.WebSocket){
+            console.warn('WebSocket is not supported by this browser.');
+        }
+
+        var formats = [UIWebSocket.FORMAT_JSON, UIWebSocket.FORMAT_TOKENIZED_JSON, UIWebSocket.FORMAT_RAW];
+
+        this.format = params.hasOwnProperty('format') && formats.indexOf(params.format) >= 0 ? params.format : UIWebSocket.FORMAT_TOKENIZED_JSON;
+        this.url = params.url;
+        this.authRequestMessage = params.authRequestMessage ? params.authRequestMessage : null;
+        this.authSuccessMessage = params.authSuccessMessage ? params.authSuccessMessage : 'authorized';
+        this.authFailMessage = params.authFailMessage ? params.authFailMessage : 'authorization failed';
+        this.conn = null;
+        this.authorized = false;
+        this.reconnectionInterval = params.reconnectionInterval ? params.reconnectionInterval : 5000;
+        this.tokens = {};
+        this.__ = {
+            events : {}
+        }
+    }
+
+    UIWebSocket.FORMAT_JSON = 'json';
+    UIWebSocket.FORMAT_TOKENIZED_JSON = 'tokenized-json';
+    UIWebSocket.FORMAT_RAW = 'text';
+
+
+    UIWebSocket.prototype = {};
+    addEventsImplementation.call(UIWebSocket.prototype);
+    _uibuilder.WS = UIWebSocket;
+
+
+    /**
+     * Events:
+     * - onauthstart
+     * - onauthsuccess
+     * - onauthfail
+     * - onmessage
+     * - onresponse
+     * - onsend
+     */
+    UIWebSocket.prototype.connect = function()
+    {
+        if(this.conn !== null) return;
+        var conn = new WebSocket(this.url);
+
+        var _this = this;
+        var ti;
+
+        // Handle connection establishing.
+        conn.onopen = function(){
+            _this.conn = conn;
+            if(_this.authRequestMessage !== null){
+                _this.conn.send(_this.authRequestMessage);
+            }
+            clearInterval(ti);
+        };
+
+        // Handle losing connection and try to reconnect.
+        conn.onclose = function (e) {
+            _this.authorized = false;
+            _this.conn = null;
+            _this.tokens = {};
+            ti = setTimeout(function(){
+                _this.connect();
+            }, _this.reconnectionInterval);
+        };
+
+        // Handle incoming messages.
+        conn.onmessage = function (e) {
+            // Handle authorization if it's enabled.
+            if(_this.authRequestMessage !== null) {
+                if (e.data === _this.authSuccessMessage) {
+                    _this.authorized = true;
+                    _this.triggerEvent('authsuccess');
+                    return;
+                } else if (e.data === _this.authFailMessage) {
+                    _this.authorized = false;
+                    _this.triggerEvent('authfail');
+                    return;
+                }
+            }
+
+            // Trigger onmessage event if there is a raw message format is using.
+            if(_this.format === UIWebSocket.FORMAT_RAW){
+                _this.triggerEvent('message', e.data);
+
+
+            }else if(_this.format === UIWebSocket.FORMAT_JSON){
+                _this.triggerEvent('message', JSON.parse(e.data));
+
+            }else if(_this.format === UIWebSocket.FORMAT_TOKENIZED_JSON) {
+                var data = JSON.parse(e.data);
+                if(!data.hasOwnProperty('Token')){
+                    _this.triggerEvent('message', data);
+                    return;
+                }
+
+                var token = data.Token;
+                delete data.Token;
+
+                // Ignore unregistered tokens.
+                if(!_this.tokens.hasOwnProperty(token)){
+                    return;
+                }
+
+                if(data.hasOwnProperty('Data')){
+                    data = data.Data;
+                }
+
+                _this.triggerEvent('message', data);
+                _this.triggerEvent('response', data);
+                _this.tokens[token](data);
+                delete _this.tokens[token];
+            }
+        };
+    };
+
+
+
+    UIWebSocket.prototype.send = function(data, callback) {
+        if(this.conn === null) return;
+        var d = new WebSocketData(data);
+        this.tokens[d.token] = callback;
+        this.conn.send(JSON.stringify(d));
+        this.triggerEvent('send', d);
+    };
+
+
+
+    function randomId(length)
+    {
+        var text = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        for( var i=0; i < length; i++ )
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+        return text;
+    }
+
+
+
+    function WebSocketData(data)
+    {
+        this.token = randomId(12) + Date.now();
+        for(var p in data){
+            if(!data.hasOwnProperty(p)) continue;
+            this[p] = data[p];
+        }
+    }
+
+
+
+
+
+
+
+    /**
+     *        Collections
+     * ____________________________
+     * ----------------------------
+     * Will be implemented later :)
+     *
+     * @param items
+     * @constructor
+     */
+    function Collection(items) {
+        this.items = Array.isArray(items) ? [] : items;
+    }
+
+    Collection.prototype = Object.create(UIElement.prototype)
+
+    Collection.prototype.remove = function () {
+        for (var i = 0, len = this.items.length; i < len; i++) {
+            this.items[i].remove();
+        }
+    };
+
+
+
+
 
 
     /**
@@ -2934,9 +3208,308 @@ var UIBuilder = (function () {
 	 * For marking dropdowns used speciall class - .dropdown
 	 * If dropdown is shown - .shown class will be used.
      */
+	UIElement.prototype.makeDropdown = function(target)
+	{
+		this.addClass('dropdown-handle');
+		target.addClass('dropdown');
+		target.hide();
+		this.__.dropdownTarget = target;
+		target.__.dropdownHandle = this;
+		this.on('click', dropdownHandler);
+	}
 	
+	function dropdownHandler()
+	{
+		this.toggleClass('dropdown-expanded');
+		this.__.dropdownTarget
+			.toggleClass('dropdown-expanded')
+			.slideDown(100, function(){
+				this.css({display: 'flex'});
+			});
+	}
+	
+	
+	document.addEventListener('mousedown', function(e){
+		var items = document.getElementsByClassName('dropdown');
+		for(var i = 0, len = items.length; i < len; i++){
+			if(items[i].uielement instanceof UIElement){
+				if(items[i].uielement.__.dropdownHandle instanceof UIElement){
+					items[i].uielement.css({display: 'none'});
+				}
+			}
+		}
+	});
+
+	
+	
+	
+	/**
+     *           Colors
+     * ___________________________
+     * ---------------------------
+     *
+     * Color is on object that represents color.
+	 * Can be used in any supported format: hex, RGBA, HSL.
+	 * Also provides few functions to manipulation: lighten(), darken(), saturated(), desaturated().
+     */
+	function Color(r, g, b, a)
+	{
+		// RGBA
+		this.r = 0;
+		this.g = 0;
+		this.b = 0;
+		this.a = 1;
+		
+		// HSL
+		this.h = 0;
+		this.s = 0;
+		this.l = 0;
+	}	 
+ 
+	
+	
+	
+	
+	
+	/**
+     *           Templates
+     * ___________________________
+     * ---------------------------
+     *
+     * Template is a special object that encapsulates styles and 
+	 * provides simple API to get/set properties, switching theme with 
+	 * on-the-fly interface updating.
+     */
+
+
+	/**
+	 * @var {object} Object that describes CSS styles spell-checking regular expressions.
+	 */
+	var styles = {
+		// Border
+		border : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+		borderLeft : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+		borderRight : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+		borderTop : /(none|initial|d\{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+		borderBottom : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+		borderRadius : /(none|0|initial|\d+(px|%|em|rem))/i,
+		borderWidth : /(0|initial|\d+(px|%|em|rem))/i,
+		borderColor : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
+		borderStyle : /(initial|solid|dotted|dashed)/i,
+		// Font
+		fontSize : /(initial|inherit|(\d+(px|em|rem|%)))/i,
+		fontStyle : /(initial|inherit|italic|normal)/i,
+		color : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
+		backgroundColor : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
+		// Width
+		width : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+		maxWidth : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+		minWidth : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+		// Height
+		height : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+		minHeight : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+		maxHeight : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+		display : /(none|block|inline|inline-block|flex|table|table-cell|table-row)/i,
+		// Position
+		position : /(initial|static|fixed|relativa|absolute)/i,
+		top : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		left : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		bottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		right : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		position : /(initial|static|fixed|relativa|absolute)/i,
+		// Margin
+		margin : /(initial|0|(-?\d+(px|em|rem|%)(\s+-?\d+(px|em|rem|%)){0,3}))/i,
+		marginTop : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		marginLeft : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		marginBottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		marginRight : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		// Padding
+		padding : /(initial|0|(-?\d+(px|em|rem|%)(\s+-?\d+(px|em|rem|%)){0,3}))/i,
+		paddingTop : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		paddingLeft : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		paddingBottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		paddingRight : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+		// Shadows
+		boxShadow : /(initial|none|(inset\s+)?-?\d+(px|em|rem|%)?\s+-?\d+(px|em|rem|%)?\s+\d+(px|em|rem|%)?\s+(\d+(px|em|rem|%)?\s+)?(#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+		textShadow : /(initial|none|(inset\s+)?-?\d+(px|em|rem|%)?\s+-?\d+(px|em|rem|%)?\s+\d+(px|em|rem|%)?\s+(\d+(px|em|rem|%)?\s+)?(#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+		// Transform
+		
+		
+	};
+	
+	
+	/**
+	 * Exported function.
+	 */
+	var _theme = (function()
+	{
+		var themes = {};
+		var currentTheme = null;
+		
+		
+		function t(name)
+		{
+			return new StyleGetter(name);
+		}
+		
+		
+		/**
+		 * Registers new theme.
+		 * Exported method.
+		 */
+		t.register = function(name, params)
+		{
+			if(!themes.hasOwnProperty(name)){
+				themes[name] = new Theme(name, params);
+				return true;
+			}
+			warn('Theme with name "' + name + '" is already registered.');
+			return false;
+		};
+		
+		
+		
+		t.switchTo = function(name)
+		{
+			if(!themes.hasOwnProperty(name)){
+				warn('Theme can\'t be switched because theme "' + name + '" is not registered.');
+				return false;
+			}
+			currentTheme = themes[name];
+			
+			// Update styles.
+			var styles = document.getElementsByTagName('style');
+			for(var i = 0, len = styles.length; i < len; i++){
+				if(styles[i].hasOwnProperty('ui')){
+					var ui = styles[i].ui;
+					styles[i].innerHTML = ui.generateCSS(ui.css);
+				}
+			}
+			
+			return true;
+		};
+		
+		
+		
+		/**
+		 * Returns style value.
+		 */
+		t.getStyle = function(name)
+		{
+			if(currentTheme === null){
+				warn('Theme is not selected');
+				return 'initial';
+			}
+			
+			// Get path and style name.
+			var path = name.split('.');
+			var style = path.pop();
+			
+			// If no path specified - return theme's style.
+			if(path.length === 0){
+				return currentTheme.getStyle(style);
+			}
+			
+			// Look for style in the nested components (themes).
+			var theme = currentTheme;
+			
+			do{
+				var n = path.shift();
+				if(!theme.components.hasOwnProperty(n)){
+					warn('Style with name "' + name + '" is absent in the current theme "' + currentTheme.name + '".');
+					return 'initial';
+				}
+				theme = theme.components[n];
+			}while(path.length > 0);
+			
+			return theme.getStyle(style);
+		};
+		
+		
+		/**
+		 * Returns name of the currently selected theme.
+		 */
+		t.getThemeName = function(){
+			if(currentTheme === null){
+				warn('Theme is not selected');
+				return null;
+			}
+			return currentTheme.name;
+		};
+		
+		
+		/**
+		 * Adds new theme section (nested theme).
+		 * Sections usage example: Theme('button.backgroundColor')
+		 */
+		t.addSection = function(name, params)
+		{
+			if(currentTheme === null){
+				warn('Theme is not selected');
+				return false;
+			}
+			
+			if(currentTheme.components.hasOwnProperty(name)){
+				warn('Component "' + name + '" already exists in the theme "' + currentTheme.name + '".');
+				return false;
+			}
+			
+			currentTheme.components[name] = new Theme(name, params);
+			return true;
+		};
+		
+		return t;
+	})();
+	
+	
+	_uibuilder.theme = _theme;
 	
 
+
+	function Theme(name, params)
+	{
+		this.name = name;
+		this.styles = {};
+		this.components = {};
+		
+		if(typeof params === 'object'){
+			for(var p in params){
+				if(typeof params[p] === 'object'){
+					this.components[p] = new Theme(p, params[p]);
+				}else{
+					this.styles[p] = params[p];
+				}
+			}
+		}
+	}
+	Theme.prototype = {constructor: Theme};
+	
+	Theme.prototype.getStyle = function(name)
+	{
+		if(!this.styles.hasOwnProperty(name)){
+			warn('Style with name "' + name + '" is absent in the current theme "' + _theme.getThemeName() + '".');
+			return 'initial';
+		}
+		return this.styles[name];
+	};
+	
+
+	
+	/**
+	 * Constructor of objects that used to store theme links.
+	 */
+	function StyleGetter(name)
+	{
+		this.name = name;
+	}
+	StyleGetter.prototype = {
+		constructor : StyleGetter,
+		getValue : function(){
+			return _theme.getStyle(this.name);
+		}
+	};
+	
+	
 
     /**
      *           Routes
@@ -2962,9 +3535,12 @@ var UIBuilder = (function () {
 })();
 
 
-// Comment line below if you dont want to use pseudonym.
+// Comment line below if you don't want to use pseudonym.
 var UI = UIBuilder;
+var Theme = UI.theme;
 var Data = UI.UIData;
 var DataAjax = UI.UIDataAjax;
+var DataWS = UI.UIDataWS;
+var WS = UI.WS;
 var Route = UI.Route;
 var Animation = UI.Animation;

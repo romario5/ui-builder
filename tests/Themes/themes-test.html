@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>UIBuilder | Spinner test</title>
+		<script src="../../src/UIBuilder.js"></script>
+		<style>
+			section{
+				width: 600px;
+				height: 400px;
+				border: 1px solid #333;
+				padding: 10px;
+				margin: 10px;
+				position: relative;
+			}
+			p{ 
+				position: relative;
+				font-family: monospace;
+			}
+			h1{
+				margin-bottom: 10px ;
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<section id="test-1">
+			<h1>Theme test</h1>
+			<p>
+				Here you should see three spinners with different sizes.<br/>
+				Pay attention that all spinners will fades in (default fade in animation).<br/>
+				If you click on the container it will disappear smoothly (default fade out animation) and then removed.
+			</p>
+			<br/>
+			<br/>
+			<pre>
+			
+			</pre>
+			<script>
+				var html = '';
+				
+				Theme.register('Default', {
+					color : '#000000',
+					border : '1px solid #cccccc'
+				});
+			
+				Theme.register('Blue', {
+					color : '#0055ff',
+					border : '1px solid #3399ff'
+				});
+				
+				Theme.switchTo('Default');
+				html += "Theme switched to Default\n";
+			
+				var data = {
+					color : Theme('color'),
+					border : Theme('border')
+				};
+				
+				html += "Color: " + data.color.getValue() + "\n";
+				html += "Border: " + data.border.getValue() + "\n";
+				
+				Theme.switchTo('Blue');
+				html += "\nTheme switched to Blue\n";
+				
+				html += "Color: " + data.color.getValue() + "\n";
+				html += "Border: " + data.border.getValue() + "\n";
+				
+				var a = Theme('test/border');
+				a.getValue();
+				
+				document.getElementsByTagName('pre')[0].innerHTML = html;
+			</script>
+		</section>
+	</body>
+<html/>
