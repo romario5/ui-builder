@@ -1162,6 +1162,7 @@ var UIBuilder = (function () {
 
             }
         }
+        this.triggerEvent('afterload');
         return this;
     };
 
@@ -1277,6 +1278,26 @@ var UIBuilder = (function () {
         return this.__.child !== null;
     };
 
+
+    UIElement.prototype.node = function(){
+        return this.__.node;
+    };
+
+    UIElement.prototype.scrollTop = function(value){
+        if(value === undefined){
+            return this.__.node.scrollTop;
+        }
+        this.__.node.scrollTop = value;
+        return this;
+    };
+
+    UIElement.prototype.scrollHeight = function(){
+        return this.__.node.scrollHeight;
+    };
+
+    UIElement.prototype.node = function(){
+        return this.__.node;
+    };
 
     /**
      * Sets child UI.
@@ -1894,11 +1915,16 @@ var UIBuilder = (function () {
         // Get initial values.
         var styles = this.computedStyle();
         for (var p in endVals) {
-            units[p] = styles[p].replace(/[\d.]/g, '');
-            startVals[p] = parseFloat(styles[p].toString().replace(/[^\d.]/gi, ''));
-            endVals[p] = parseFloat(endVals[p].toString().replace(/[^\d.]/gi, ''));
+            units[p] = styles[p].replace(/[-\d.]/g, '');
+            startVals[p] = parseFloat(styles[p].toString().replace(/[^-\d.]/gi, ''));
+            endVals[p] = parseFloat(endVals[p].toString().replace(/[^-\d.]/gi, ''));
         }
-
+		
+		/*
+		console.log(startVals);
+		console.log(endVals);
+		*/
+		
         this.stopAnimation();
 
         // Create new animation.
@@ -1918,12 +1944,10 @@ var UIBuilder = (function () {
                 var k2 = k;
                 diff = endVals[p] - startVals[p];
 
+				
                 if (diff === 0) continue;
-                if (diff < 0) {
-                    k2 = (1 - k2);
-                    diff *= -1;
-                }
-                cssObj[p] = parseFloat((diff * k2).toFixed(5)) + units[p];
+				//console.log(parseFloat((diff * k2).toFixed(5)) + startVals[p]);
+                cssObj[p] = parseFloat((diff * k2).toFixed(5)) + startVals[p] + units[p];
             }
             el.css(cssObj);
             if (isEnd) {
@@ -2076,6 +2100,8 @@ var UIBuilder = (function () {
         } else {
             throw new UIElementLoadException('Unsupported data type given (' + typeof data + '). Only string or object can be used.');
         }
+
+        this.triggerEvent('afterload');
         return this;
     };
 
@@ -2721,6 +2747,8 @@ var UIBuilder = (function () {
 
     /**
      * Events:
+     * - onconnect
+     * - ondisconnect
      * - onauthstart
      * - onauthsuccess
      * - onauthfail
@@ -2743,6 +2771,7 @@ var UIBuilder = (function () {
                 _this.conn.send(_this.authRequestMessage);
             }
             clearInterval(ti);
+            _this.triggerEvent('connect');
         };
 
         // Handle losing connection and try to reconnect.
@@ -2753,6 +2782,7 @@ var UIBuilder = (function () {
             ti = setTimeout(function(){
                 _this.connect();
             }, _this.reconnectionInterval);
+            _this.triggerEvent('disconnect');
         };
 
         // Handle incoming messages.
