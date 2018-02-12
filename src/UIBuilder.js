@@ -41,7 +41,7 @@ var UIBuilder = (function () {
      * @return {string}
      */
     function makeClassName(str) {
-        return splitByUpperCase(str).join('-').replace(/([a-zA-Z_])\s+([a-zA-Z_])/g, "$1-$2").toLowerCase();
+        return splitByUpperCase(str.replace(' - ', '-')).join('-').replace(/([a-zA-Z_-])\s+([a-zA-Z_-\d])/g, "$1-$2").toLowerCase();
     }
 
 
@@ -687,7 +687,7 @@ var UIBuilder = (function () {
                     params.class = makeClassName(elementName);
                 }
 
-                var uiClass = makeClassName(ui.name.replace(' ', ','));
+                var uiClass = makeClassName(ui.name);
                 if (ui.scheme === scheme && params.class !== uiClass) {
                     params.class = uiClass + ' ' + params.class;
                 }
@@ -1878,9 +1878,9 @@ var UIBuilder = (function () {
 
     /**
      * Toggles fading effect.
-     * @param {int} duration Fading duration in miliseconds.
+     * @param {int} duration Fading duration in milliseconds.
      * @param {string} displayAs If set will be used to set display
-     * css property before animation start in case of fadeIn() method will be applied.
+     * CSS property before animation start in case of fadeIn() method will be applied.
      * If fadeOut() method and displayAs property is specified - element will be hidden after
      * animation finish.
 	 * @param {function} callback
@@ -1899,10 +1899,10 @@ var UIBuilder = (function () {
 
 
     /**
-     * Animates css properties of the object.
+     * Animates CSS properties of the object.
      * @param {object} props Object with animated properties.
      * Keys are properties names and values are the end values.
-     * @param {int} duration Duration in miliseconds.
+     * @param {int} duration Duration in milliseconds.
      * @return {UIElement} (itself)
      * @see Animation
      */
@@ -1915,9 +1915,17 @@ var UIBuilder = (function () {
         // Get initial values.
         var styles = this.computedStyle();
         for (var p in endVals) {
-            units[p] = styles[p].replace(/[-\d.]/g, '');
-            startVals[p] = parseFloat(styles[p].toString().replace(/[^-\d.]/gi, ''));
-            endVals[p] = parseFloat(endVals[p].toString().replace(/[^-\d.]/gi, ''));
+			
+			units[p] = styles[p].replace(/[-\d.]/g, '');
+			startVals[p] = parseFloat(styles[p].toString().replace(/[^-\d.]/gi, ''));
+			if((p === 'width' || p === 'maxWidth' || p === 'minWidth') && (endVals[p] + "").indexOf('%') > 0){
+				units[p] = '%';
+				startVals[p] = startVals[p] / this.__.node.parentNode.offsetWidth * 100;
+			}else if((p === 'height' || p === 'maxHeight' || p === 'minHeight') && (endVals[p] + "").indexOf('%') > 0){
+				units[p] = '%';
+				startVals[p] = startVals[p] / this.__.node.parentNode.offsetHeight * 100;
+			}
+			endVals[p] = parseFloat(endVals[p].toString().replace(/[^-\d.]/gi, ''));
         }
 		
 		/*
@@ -2921,9 +2929,13 @@ var UIBuilder = (function () {
      * @param {object} options
      */
     function Animation(options) {
+		var duration = typeof options === 'number' ? options : 250;
+		if(typeof options !== 'object') {
+			options = {};
+		}
         this.start = options.start || 0;
-        this.end = options.end || 0;
-        this.duration = options.duration || 250;
+        this.end = options.end || 1;
+        this.duration = options.duration || duration;
         this.f = options.f || 'easeOutQuad';
         this.callback = options.callback;
         this.stopped = false;

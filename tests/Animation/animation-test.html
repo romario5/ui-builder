@@ -3,7 +3,9 @@
 	<head>
 		<title>UIBuilder | Animation test</title>
 		<script src="../../src/UIBuilder.js"></script>
-		<script src="ui.js"></script>
+		<script src="button.ui.js"></script>
+		<script src="test-1.ui.js"></script>
+		<script src="test-2.ui.js"></script>
 		<style>
 			section{
 				padding: 10px;
@@ -13,27 +15,35 @@
 			p{ 
 				position: relative;
 				font-family: monospace;
-				margin-bottom: 15px ;
+				margin-bottom: 5px ;
 			}
 			h1{
 				margin-bottom: 10px ;
+				font-family: monospace;
+			}
+			ul{
+				margin-left: 25px;
+				margin-bottom: 5px ;
+			}
+			 li{ 
+				position: relative;
 				font-family: monospace;
 			}
 		</style>
 	</head>
 	<body>
 		<section id="test-1">
-			<h1>Simple form example</h1>
-			<p>
-				Data gathering allows you to compose data structure of forms even if you use different UIs in the form.<br/>
-				Click "Gather" button to see what data will be gathered for the given form.
-			</p>
-			<button type="button" onclick="showAlert()">Show alert</button>
+			<h1>Animation example</h1>
+			<p>There are few ways to make some animation:</p>
+			<ul>
+				<li>Use <code>.animate()</code> method.</li>
+				<li>Create <code>Animation</code> object and then run it making changes manually.</li>
+			</ul>
+			<p>Click "Run" button to see animations in action.</p>
+			<br/>
 			<script>
-				function showAlert()
-				{
-					UI('Alert').renderTo('body').load({text : 'Some new cool alert content.'});
-				}
+				UI('Test 1').renderTo('#test-1').load({text : 'Some new cool alert content.'});
+				UI('Test 2').renderTo('#test-1').load({text : 'Some new cool alert content.'});
 			</script>
 		</section>
 	</body>
