@@ -51,6 +51,7 @@ UI.register({
 		}
 	},
 	
+	
 	onrender : function(inst, params){
 		inst.btn.on('click', function(){
 			
@@ -64,7 +65,6 @@ UI.register({
 					transform: 'rotate(' + (1440*k) + 'deg)'
 				});
 			});
-			
 		});
 	}
 });

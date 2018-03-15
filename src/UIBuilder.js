@@ -13,15 +13,15 @@
 var UIBuilder = (function () {
 
 
-     // Add reset styles.
-     (function(){
-         var head  = document.getElementsByTagName('head')[0];
-         var styleTag  = document.createElement('style');
-         styleTag.innerHTML = '* {margin : 0; padding : 0;}';
-         var comment = document.createComment('--- RESET ---');
-         head.appendChild(comment);
-         head.appendChild(styleTag);
-     })();
+    // Add reset styles.
+    (function(){
+        var head  = document.getElementsByTagName('head')[0];
+        var styleTag  = document.createElement('style');
+        styleTag.innerHTML = '* {margin : 0; padding : 0; box-sizing: border-box;}';
+        var comment = document.createComment('--- RESET ---');
+        head.appendChild(comment);
+        head.appendChild(styleTag);
+    })();
 
 
 
@@ -41,14 +41,14 @@ var UIBuilder = (function () {
      * @return {string}
      */
     function makeClassName(str) {
-        return splitByUpperCase(str.replace(' - ', '-')).join('-').replace(/([a-zA-Z_-])\s+([a-zA-Z_-\d])/g, "$1-$2").toLowerCase();
+        return splitByUpperCase(str.replace(' - ', '-')).join('-').replace(/([a-zA-Z_-])\s+([a-zA-Z_\-\d])/g, "$1-$2").toLowerCase();
     }
 
 
     /**
      * @var {object} Private variable that stores UIs.
      */
-    var uilist = {};
+    var uiList = {};
 
 
     /**
@@ -57,8 +57,8 @@ var UIBuilder = (function () {
      * @return {UI|null}
      */
     function getByName(name) {
-        if (uilist.hasOwnProperty(name)) {
-            return uilist[name];
+        if (uiList.hasOwnProperty(name)) {
+            return uiList[name];
         }
         return null;
     }
@@ -74,6 +74,46 @@ var UIBuilder = (function () {
     }
 
 
+    var csrfParam = 'csrf';
+    var csrfToken = null;
+
+    _uibuilder.setCsrfToken = function(token){
+        if(csrfToken === null){
+            if(typeof token === 'object'){
+                csrfParam = Object.keys(token)[0];
+                csrfToken = token[csrfParam];
+            }else if(typeof token === 'string'){
+                csrfToken = token;
+            }
+        }
+    };
+
+
+
+    var language = 'en';
+
+
+    /**
+     * Sets interface language.
+     * @param {string} lang
+     */
+    _uibuilder.setLanguage = function(lang)
+    {
+        language = lang;
+    };
+
+
+    /**
+     * Returns interface language.
+     * @return {string}
+     */
+    _uibuilder.getLanguage = function()
+    {
+        return language;
+    };
+
+
+
     /**
      * Adding events support for the UIBuilder.
      */
@@ -87,7 +127,7 @@ var UIBuilder = (function () {
      * @return {Array}
      */
     _uibuilder.listUI = function () {
-        return Object.keys(uilist);
+        return Object.keys(uiList);
     };
 
 
@@ -117,7 +157,7 @@ var UIBuilder = (function () {
 
 
     /**
-     * Logs message using consolerror(e) function.
+     * Logs message using console.log(e) function.
      */
     function log(message) {
         if (Settings.logging) console.log(logPrefix + ' ' + message);
@@ -298,42 +338,36 @@ var UIBuilder = (function () {
      * Example: UIBuilder.setParsingRule('include', /~\w*[_-\w\s]+/ig);
      */
     _uibuilder.setParsingRule = function (subjectOrRules, regularExpression) {
-        try {
+        if (typeof subjectOrRules === 'string') {
 
-            if (typeof subjectOrRules === 'string') {
+            if (!Settings.hasOwnProperty('regexp_' + subjectOrRules))
+                throw new SettingsException('Rule "' + subjectOrRules + '" is absent in the settings.');
 
-                if (!Settings.hasOwnProperty('regexp_' + subjectOrRules))
-                    throw new SettingsException('Rule "' + subjectOrRules + '" is absent in the settings.');
+            if (a.constructor !== RegExp)
+                throw new SettingsException('Trying to assign '
+                    + typeof regularExpression + ' as parsing regular expression for ' + subjectOrRules + '.'
+                );
 
-                if (a.constructor !== RegExp)
-                    throw new SettingsException('Trying to assign '
-                        + typeof regularExpression + ' as parsing regular expression for ' + subjectOrRules + '.'
-                    );
-
-                Settings['regexp_' + parameters] = regularExpression;
+            Settings['regexp_' + subjectOrRules] = regularExpression;
 
 
-            } else if (typeof subjectOrRules === 'object') {
+        } else if (typeof subjectOrRules === 'object') {
 
-                for (var p in subjectOrRules) {
+            for (var p in subjectOrRules) {
 
-                    if (Settings.hasOwnProperty('regexp_' + p)) {
-                        if (a.constructor !== RegExp)
-                            throw new SettingsException('Trying to assign '
-                                + typeof regularExpression + ' as parsing regular expression for '
-                                + subjectOrRules + '.'
-                            );
-                        Settings['regexp_' + p] = subjectOrRules[p];
+                if (Settings.hasOwnProperty('regexp_' + p)) {
+                    if (a.constructor !== RegExp)
+                        throw new SettingsException('Trying to assign '
+                            + typeof regularExpression + ' as parsing regular expression for '
+                            + subjectOrRules + '.'
+                        );
+                    Settings['regexp_' + p] = subjectOrRules[p];
 
-                    } else {
-                        throw new SettingsException('Rule "' + p + '" is absent in the settings.');
-                    }
+                } else {
+                    throw new SettingsException('Rule "' + p + '" is absent in the settings.');
                 }
-
             }
 
-        } catch (e) {
-            error(e);
         }
     };
 
@@ -402,7 +436,7 @@ var UIBuilder = (function () {
          * All the arguments (omitting event name) will be passed to the handlers.
          *
          * @param {string} eventName
-         * @param {mixed} data
+         * @param data
          */
         this.triggerEvent = function (eventName, data) {
             var args = [];
@@ -444,43 +478,43 @@ var UIBuilder = (function () {
      */
     function cloneSchemeLinear(scheme, target) {
         for (var p in scheme) {
+            if(scheme.hasOwnProperty(p)){
+                if (typeof scheme[p] === 'object') {
+                    cloneSchemeLinear(scheme[p], target);
+                    target[p] = {
+                        name : p,
+                        rules : '',
+                        children: scheme[p]
+                    };
 
-            if (typeof scheme[p] === 'object') {
-                cloneSchemeLinear(scheme[p], target);
-                target[p] = {
-					name : p,
-					rules : '',
-					children: scheme[p]
-				};
+                } else if (typeof scheme[p] === 'string') {
+                    target[p] = {
+                        name : p,
+                        rules : scheme[p],
+                        children: null
+                    };
 
-            } else if (typeof scheme[p] === 'string') {
-                target[p] = {
-					name : p,
-					rules : scheme[p],
-					children: null
-				};
-
-            } else {
-                throw new InvalidSchemeException('Value of the elemend must be string or object.');
+                } else {
+                    throw new InvalidSchemeException('Value of the elemend must be string or object.');
+                }
             }
-
         }
     }
 
 
     /**
-     * Parses element's parameters string into object.
+     * Parses element's parameters string into the object.
      * All regular expressions used for parsing available in the settings.
      */
     function parseParameters(str) {
         var _result = {};
-		
-		
-		// Parse parameters.
+
+
+
+        // Parse parameters.
         _result.parameters = {};
         var prm = str.match(Settings.regexp_params);
         str = str.replace(Settings.regexp_params, '');
-		
 
         // Get parameters array
         (prm !== null && prm.length > 0) ? prm = prm[0].slice(1, -1) : prm = '';  // Cut the brackets.
@@ -494,9 +528,8 @@ var UIBuilder = (function () {
                 _result.parameters[p[0].trim()] = p[1].trim();
             }
         }
-		
-		
-		
+
+
 
         // Parse attributes.
         _result.attributes = {};
@@ -507,7 +540,6 @@ var UIBuilder = (function () {
         (att !== null && att.length > 0) ? att = att[0].slice(1, -1) : att = ''; // Cut the brackets.
         att = att.split(';');
 
-
         // Put attributes into the result.
         var p;
         for (var i = 0; i < att.length; i++) {
@@ -517,6 +549,7 @@ var UIBuilder = (function () {
                 _result.attributes[p[0].trim()] = p[1].trim();
             }
         }
+
 
 
         // Parse properties.
@@ -536,6 +569,8 @@ var UIBuilder = (function () {
                 _result.properties[p[0].trim()] = p[1].trim();
             }
         }
+
+
 
         // Define tag name, id, class and child UI using regular expressions.
         _result.tag = str.match(Settings.regexp_tagName);
@@ -570,6 +605,21 @@ var UIBuilder = (function () {
         this.name = options.hasOwnProperty('name') ? options.name : '';
         this.css = options.hasOwnProperty('css') ? options.css : null;
 
+        // Define instance constructor to implement methods.
+        this.uiiConstructor = !options.hasOwnProperty('methods') ? UIInstance : (function(){
+            function AnotherUIInstance(options){
+                UIInstance.call(this, options);
+            }
+            AnotherUIInstance.prototype = Object.create(UIInstance.prototype);
+            AnotherUIInstance.prototype.constructor = UIInstance;
+            for(var p in options.methods){
+                if(typeof options.methods[p] === 'function' && !UIInstance.prototype.hasOwnProperty(p)){
+                    AnotherUIInstance.prototype[p] = options.methods[p];
+                }
+            }
+            return AnotherUIInstance;
+        })();
+
         if (this.css === null && options.hasOwnProperty('styles')) {
             this.css = options.styles;
         }
@@ -590,11 +640,11 @@ var UIBuilder = (function () {
         this.__.url = null;
 
         // Parameters to be used on rendering.
-		if(options.hasOwnProperty('parameters')){
-			this.__.params = options.parameters;
-		}else if(options.hasOwnProperty('params')){
-			this.__.params = options.params;
-		}
+        if(options.hasOwnProperty('parameters')){
+            this.__.params = options.parameters;
+        }else if(options.hasOwnProperty('params')){
+            this.__.params = options.params;
+        }
 
         if (typeof this.scheme !== 'object')
             throw new InvalidSchemeException('Scheme must be an object. ' + typeof this.scheme + ' given.');
@@ -605,12 +655,12 @@ var UIBuilder = (function () {
         } catch (e) {
             error(e);
         }
-		
-		for(var p in this.elements){
-			if(this.rules.hasOwnProperty(p) && this.elements[p].rules === ''){
-				this.elements[p].rules = this.rules[p];
-			}
-		}
+
+        for(var p in this.elements){
+            if(this.rules.hasOwnProperty(p) && this.elements[p].rules === ''){
+                this.elements[p].rules = this.rules[p];
+            }
+        }
 
         for (var p in options) {
             if (p.slice(0, 2) === 'on' && typeof options[p] === 'function') {
@@ -702,13 +752,13 @@ var UIBuilder = (function () {
                 // Render another UI if include is detected.
                 if (params.include !== null) {
 
-                    if (uilist.hasOwnProperty(params.include)) {
-						for(var p in uilist[params.include].__.params){
-							if(!params.parameters.hasOwnProperty(p)){
-								params.parameters[p] = uilist[params.include].__.params[p];
-							}
-						}
-                        element.__.inclusion = element.add(uilist[params.include], params.parameters);
+                    if (uiList.hasOwnProperty(params.include)) {
+                        for(var p in uiList[params.include].__.params){
+                            if(!params.parameters.hasOwnProperty(p)){
+                                params.parameters[p] = uiList[params.include].__.params[p];
+                            }
+                        }
+                        element.__.inclusion = element.add(uiList[params.include], params.parameters);
                     } else {
                         throw new RenderingException('Required for including UI "' + params.include + '" is not registered yet.');
                     }
@@ -750,15 +800,15 @@ var UIBuilder = (function () {
             }
         }
     }
-	
-	
-	
-	UI.prototype.getRootElement = function ()
-	{
-		var topLevel = Object.keys(this.scheme);
+
+
+
+    UI.prototype.getRootElement = function ()
+    {
+        var topLevel = Object.keys(this.scheme);
         return topLevel.length === 1 ? this.elements[topLevel[0]] : null;
-	};
-	
+    };
+
 
     /**
      * Renders UI into container.
@@ -770,7 +820,8 @@ var UIBuilder = (function () {
      * @return {UIInstance}
      **/
     UI.prototype.renderTo = function (container, atStart, params) {
-        var instance = new UIInstance(); // Create new UI instance.
+
+        var instance = new this.uiiConstructor(); // Create new UI instance.
 
         instance.__.ui = this; // Set UI property.
 
@@ -793,13 +844,13 @@ var UIBuilder = (function () {
         } catch (e) {
             error(e);
         }
-		
+
 
         // Create <style/> tag if CSS property specified and styles are not loaded yet.
         if (!this.cssLoaded && this.css !== null) {
-			this.createStyles();
+            this.createStyles();
         }
-		
+
 
         if (typeof params !== 'object') params = {};
         for (var p in this.__.params) {
@@ -809,136 +860,140 @@ var UIBuilder = (function () {
         instance.__.params = params;
 
         // Trigger 'render' event.
-		var event = new UIEvent('render');
-		event.target = this;
+        var event = new UIEvent('render');
+        event.target = this;
         this.triggerEvent('render', instance, params, event);
 
         return instance;
     };
-	
-	
-	
-	UI.prototype.generateCSS = function(data, parentSelector)
-	{
-		if(parentSelector === undefined) parentSelector = '';
-		var res = [];
-		
-		for(var elName in data)
-		{
-			var styles = data[elName];
-			var cssText = '';
-			var selector;
-			
-			// Check if element exists in the UI.
-			if (!this.elements.hasOwnProperty(elName) && elName[0] === '@') {
-				
-				// Process CSS animation.
-				if(elName.slice(0, 10) === '@keyframes'){
-					cssText += elName + "{\n";
-					for (var p in styles) {
-						if (typeof styles[p] === 'string') {
-							cssText += '    ' + makeClassName(p) + ': ' + (styles[p] === '' ? '""' : styles[p]) + ";\n";
-						} else if (typeof styles[p] === 'object') {
-							value = '    ' + p + " {\n";
-							for (var s in styles[p]) {
-								value += '        ' + makeClassName(s) + ': ' + styles[p][s] + ";\n";
-							}
-							value += "    }\n";
-							cssText += value;
-						}
-					}
-					cssText += "}\n";
-					res.push(cssText);
-				
-				// Otherwise generate nested styles in case it is media query, print or something else.
-				}else if(typeof styles === 'object'){
-					cssText += parentSelector + elName + "{\n";
-					cssText += this.generateCSS(styles);
-					cssText += "}\n";
-					res.push(cssText);
-				}
-				continue;
-			}
-			
-			// Make selector.
-			if(this.elements.hasOwnProperty(elName)){
-				var params = parseParameters(this.elements[elName].rules);
-				selector = params.id !== null ? '#' + params.id : '.' + (params.class !== null ? params.class.split(' ').join('.') : makeClassName(elName));	
-				selector = ' ' + selector;
-			}else{
-				selector = makeClassName(elName);
-				//warn('Styles rendering issue. Style target "' + elName + '" is absent in the "' + this.name + '" UI.');
-			}
-			
-			// Make root selector to encapsulate styles in the instance UI.
-			var rootSelector = makeClassName(this.name);
-			var root = this.getRootElement();
-			if(root !== null){
-				var params = parseParameters(root.rules);
-				var rootClass = params.class !== null ? params.class.split(' ').join('.') : makeClassName(root.name);
-				if(root === this.elements[elName]){
-					selector = '';
-				}
-				var rootSelector = params.id !== null ? '#' + params.id : '.' + makeClassName(this.name) + '.' + rootClass;
-			}
-			// Don't use root selector if it already presented.
-			if(parentSelector.indexOf(rootSelector) >= 0 || selector.indexOf(rootSelector) >= 0) rootSelector = '';
-			
-			var index = res.length;
-			res.push('');
-				
-			cssText += ((rootSelector + ' ' + parentSelector).trim() + selector).replace('  ', ' ').replace(' :', ':') + "{\n";
-			for(var styleName in styles){
-				var style = styles[styleName];
-				
-				if(typeof style === 'string' || typeof style === 'number'){
-					cssText += '    ' + makeClassName(styleName) + ': ' + (style === '' ? '""' : style) + ";\n";
-					
-				}else if(style instanceof StyleGetter){
-					cssText += '    ' + makeClassName(styleName) + ': ' + style.getValue() + ";\n";
-					
-				}else if(typeof style === 'object'){
-					var obj = {};
-					obj[styleName] = style;
-					res.push(this.generateCSS(obj, parentSelector + selector));
-				}
-			}
-			cssText += "}\n";
-			res[index] = cssText;
-		}
-		return res.join("\n");
-	}
-	
-	
-	UI.prototype.createStyles = function()
-	{
-		var head = document.getElementsByTagName('head')[0];
-		var styleTag = document.createElement('style');
-		styleTag.setAttribute('data-ui', this.name);
-		styleTag.ui = this;
-		styleTag.innerHTML = this.generateCSS(this.css);
 
-		// Add comment if logging is enabled.
-		if (Settings.logging) {
-			var comment = document.createComment('--- ' + this.name + ' ---');
-			head.appendChild(comment);
-		}
 
-		head.appendChild(styleTag);
-		this.cssLoaded = true;
-	}
-	
-	
-	
-	function checkUIParameters(data)
-	{
-		if (!data.hasOwnProperty('name'))
+
+    UI.prototype.generateCSS = function(data, parentSelector)
+    {
+        if(parentSelector === undefined) parentSelector = '';
+        var res = [];
+
+        for(var elName in data)
+        {
+            var styles = data[elName];
+            var cssText = '';
+            var selector;
+
+            // Check if element exists in the UI.
+            if (!this.elements.hasOwnProperty(elName) && elName[0] === '@') {
+
+                // Process CSS animation.
+                if(elName.slice(0, 10) === '@keyframes'){
+                    cssText += elName + "{\n";
+                    for (var p in styles) {
+                        if (typeof styles[p] === 'string') {
+                            cssText += '    ' + makeClassName(p) + ': ' + (styles[p] === '' ? '""' : styles[p]) + ";\n";
+                        } else if (typeof styles[p] === 'object') {
+                            value = '    ' + p + " {\n";
+                            for (var s in styles[p]) {
+                                value += '        ' + makeClassName(s) + ': ' + styles[p][s] + ";\n";
+                            }
+                            value += "    }\n";
+                            cssText += value;
+                        }
+                    }
+                    cssText += "}\n";
+                    res.push(cssText);
+
+                    // Otherwise generate nested styles in case it is media query, print or something else.
+                }else if(typeof styles === 'object'){
+                    cssText += parentSelector + elName + "{\n";
+                    cssText += this.generateCSS(styles);
+                    cssText += "}\n";
+                    res.push(cssText);
+                }
+                continue;
+            }
+
+            // Make selector.
+            if(this.elements.hasOwnProperty(elName)){
+                var params = parseParameters(this.elements[elName].rules);
+                selector = params.id !== null ? '#' + params.id : '.' + (params.class !== null ? params.class.split(' ').join('.') : makeClassName(elName));
+                selector = ' ' + selector;
+            }else{
+                selector = makeClassName(elName);
+                //warn('Styles rendering issue. Style target "' + elName + '" is absent in the "' + this.name + '" UI.');
+            }
+
+            // Make root selector to encapsulate styles in the instance UI.
+            var rootSelector = makeClassName(this.name);
+            var root = this.getRootElement();
+            if(root !== null){
+                var params = parseParameters(root.rules);
+                var rootClass = params.class !== null ? params.class.split(' ').join('.') : makeClassName(root.name);
+                if(root === this.elements[elName]){
+                    selector = '';
+                }
+                var rootSelector = params.id !== null ? '#' + params.id : '.' + makeClassName(this.name) + '.' + rootClass;
+            }
+            // Don't use root selector if it already presented.
+            if(parentSelector.indexOf(rootSelector) >= 0 || selector.indexOf(rootSelector) >= 0) rootSelector = '';
+
+            var index = res.length;
+            res.push('');
+
+            cssText += ((rootSelector + ' ' + parentSelector).trim() + selector).replace('  ', ' ').replace(' :', ':') + "{\n";
+            for(var styleName in styles){
+                var style = styles[styleName];
+
+                if(typeof style === 'string' || typeof style === 'number'){
+                    var s = style;
+                    if(styleName === 'content'){
+                        s = (style === '' ? '""' : '"'+style+'"');
+                    }
+                    cssText += '    ' + makeClassName(styleName) + ': ' + s + ";\n";
+
+                }else if(style instanceof StyleGetter){
+                    cssText += '    ' + makeClassName(styleName) + ': ' + style.getValue() + ";\n";
+
+                }else if(typeof style === 'object'){
+                    var obj = {};
+                    obj[styleName] = style;
+                    res.push(this.generateCSS(obj, parentSelector + selector));
+                }
+            }
+            cssText += "}\n";
+            res[index] = cssText;
+        }
+        return res.join("\n");
+    };
+
+
+    UI.prototype.createStyles = function()
+    {
+        var head = document.getElementsByTagName('head')[0];
+        var styleTag = document.createElement('style');
+        styleTag.setAttribute('data-ui', this.name);
+        styleTag.ui = this;
+        styleTag.innerHTML = this.generateCSS(this.css);
+
+        // Add comment if logging is enabled.
+        if (Settings.logging) {
+            var comment = document.createComment('--- ' + this.name + ' ---');
+            head.appendChild(comment);
+        }
+
+        head.appendChild(styleTag);
+        this.cssLoaded = true;
+    };
+
+
+
+    function checkUIParameters(data)
+    {
+        if (!data.hasOwnProperty('name'))
             throw new UIRegistrationException('Name of a new UI is not defined.');
 
         if (typeof data.name !== 'string')
             throw new UIRegistrationException('Name of a new UI is ' + (typeof data.rules) + '. String required.');
 
-        if (uilist.hasOwnProperty(data.name))
+        if (uiList.hasOwnProperty(data.name))
             throw new UIRegistrationException('UI with name "' + data.name + '" already registered.');
 
         if (!data.hasOwnProperty('scheme'))
@@ -951,7 +1006,7 @@ var UIBuilder = (function () {
 
         if (typeof data.rules !== 'object')
             throw new UIRegistrationException('Rules for a new UI "' + data.name + '" is ' + (typeof data.rules) + '. Object required.');
-	}
+    }
 
 
     /**
@@ -966,8 +1021,8 @@ var UIBuilder = (function () {
      */
     function register(data) {
         checkUIParameters(data);
-        uilist[data.name] = new UI(data);
-        _uibuilder.triggerEvent('register', uilist[data.name]);
+        uiList[data.name] = new UI(data);
+        _uibuilder.triggerEvent('register', uiList[data.name]);
     }
 
     _uibuilder.register = register;
@@ -1085,25 +1140,26 @@ var UIBuilder = (function () {
         }
 
 
-        if (typeof data !== 'object') {
-            //warn('Instance data loading error: invalid argument. Object is required but ' + typeof data + ' given.');
-        }
-		
-		// Trigger event on the UI.
+        // Trigger event on the UI.
         var event = new UIEvent('load');
         event.target = this.__.ui;
         this.__.ui.triggerEvent('load', this, data, event);
         if (event.canceled) return this;
 
-		// Trigger event on the instance.
-        var event = new UIEvent('load');
+        // Trigger event on the instance.
+        event = new UIEvent('load');
         event.target = this;
         this.triggerEvent('load', data, event);
         if (event.canceled) return this;
 
 
+        if (typeof data !== 'object') {
+            //warn('Instance data loading error: invalid argument. Object is required but ' + typeof data + ' given.');
+        }
+
+        var root = this.getRootElement();
         if (typeof data === 'string') {
-            var root = this.getRootElement();
+
             if (root !== null) {
                 root.load(data, replace, atStart);
                 return this;
@@ -1112,18 +1168,17 @@ var UIBuilder = (function () {
 
 
         if (Array.isArray(data)) {
-            var root = this.getRootElement();
             if (root !== null) {
                 root.load(data, replace, atStart);
                 return this;
             }
         }
 
+
         for (var p in data) {
             if (p === '__') continue; // Prevent from changing some initial properties.
 
             if (this.hasOwnProperty(p)) {
-
                 var el = this[p];
 
                 if (this[p] instanceof UIElement) {
@@ -1132,12 +1187,12 @@ var UIBuilder = (function () {
                     if (inclusion instanceof UIInstance) {
 
                         if (Array.isArray(data[p])) {
-                            var root = inclusion.getRootElement();
-                            if (root === null || !el.hasChildUI()) {
+                            var incRoot = inclusion.getRootElement();
+                            if (incRoot === null || !el.hasChildUI()) {
                                 inclusion.load(data[p], replace, atStart);
                             } else {
                                 try {
-                                    root.load(data[p], replace, atStart);
+                                    incRoot.load(data[p], replace, atStart);
                                 } catch (e) {
                                     error(e);
                                 }
@@ -1158,8 +1213,10 @@ var UIBuilder = (function () {
                 } else {
                     el.load(data[p], replace, atStart);
                 }
-
-
+            }else if(uiList.hasOwnProperty(p)){
+                if (root !== null) {
+                    uiList[p].renderTo(root, false).load(data[p], true, false);
+                }
             }
         }
         this.triggerEvent('afterload');
@@ -1248,7 +1305,7 @@ var UIBuilder = (function () {
         for (var p in params.attributes) {
             this.__.node.setAttribute(p, params.attributes[p]);
         }
-		
+
         // Set properties.
         for (var p in params.properties) {
 
@@ -1368,36 +1425,36 @@ var UIBuilder = (function () {
     UIElement.prototype.children = function () {
         return this.__.children;
     };
-	
-	
-	/**
-	 * Returns all child elements even if they are not instances of the child UI.
-	 * @return {UIElement[]}
-	 */
-	UIElement.prototype.getAllChildElements = function()
-	{
-		var c = this.__.node.childNodes;
-		var res = [];
-		for(var i = 0, len = c.length; i < len; i++){
-			if(c[i].uielement instanceof UIElement) res.push(c[i].uielement);
-		}
-		return res;
-	};
-	
-	
-	/**
-	 * Returns all nearby elements (siblings) even if they are not instances of the child UI.
-	 * @return {UIElement[]}
-	 */
-	UIElement.prototype.getAllNearbyElements = function()
-	{
-		var c = this.__.node.parentNode.childNodes;
-		var res = [];
-		for(var i = 0, len = c.length; i < len; i++){
-			if(c[i].uielement instanceof UIElement && c[i].uielement !== this) res.push(c[i].uielement);
-		}
-		return res;
-	};
+
+
+    /**
+     * Returns all child elements even if they are not instances of the child UI.
+     * @return {UIElement[]}
+     */
+    UIElement.prototype.getAllChildElements = function()
+    {
+        var c = this.__.node.childNodes;
+        var res = [];
+        for(var i = 0, len = c.length; i < len; i++){
+            if(c[i].uielement instanceof UIElement) res.push(c[i].uielement);
+        }
+        return res;
+    };
+
+
+    /**
+     * Returns all nearby elements (siblings) even if they are not instances of the child UI.
+     * @return {UIElement[]}
+     */
+    UIElement.prototype.getAllNearbyElements = function()
+    {
+        var c = this.__.node.parentNode.childNodes;
+        var res = [];
+        for(var i = 0, len = c.length; i < len; i++){
+            if(c[i].uielement instanceof UIElement && c[i].uielement !== this) res.push(c[i].uielement);
+        }
+        return res;
+    };
 
 
     var nativeEvents = ['submit', 'abort', 'beforeinput', 'blur', 'click', 'compositionen',
@@ -1508,9 +1565,9 @@ var UIBuilder = (function () {
 
 
     /**
-     *
-     * @param ui      (UI)   - UI that will be built into UIElement
+     * Adds one instance of child UI to the element.
      * @param atStart (bool) - If true, builds UI at the start of the list
+     * @param params (array) - Parameters of the newly created UI.
      * @returns {UIInstance} - New instance of the UI, that was appended to the UIElement.node
      */
     UIElement.prototype.addOne = function (atStart, params) {
@@ -1529,14 +1586,15 @@ var UIBuilder = (function () {
      * Renders UI inside element (itself).
      * @param {UI|string} ui
      * @param {boolean} atStart if true new elements will be added at start. Default is false.
+     * @param params
      * @return {UIInstance}
      */
     UIElement.prototype.add = function (ui, atStart, params) {
         if (atStart === undefined || atStart === null) atStart = false;
 
         if (typeof ui === 'string') {
-            if (uilist.hasOwnProperty(ui)) {
-                ui = uilist[ui];
+            if (uiList.hasOwnProperty(ui)) {
+                ui = uiList[ui];
             } else {
                 throw new InvalidParamException('UI with name ' + ui + ' is absent.');
             }
@@ -1579,8 +1637,8 @@ var UIBuilder = (function () {
     UIElement.prototype.hasAttr = function (name) {
         return this.__.node.hasAttribute(name);
     };
-	
-	
+
+
     UIElement.prototype.prop = function (name, value) {
         if (value === undefined) return this.__.node[name];
         this.__.node[name] = value;
@@ -1625,7 +1683,7 @@ var UIBuilder = (function () {
         return this.__.node.offsetHeight;
     };
 
-    UIElement.prototype.hide = function (animation, duration) {
+    UIElement.prototype.hide = function() {
         if (this.__.node.style.display === 'none') return this;
         this.__.node.oldDisplay = this.__.node.style.display;
         this.__.node.style.display = 'none';
@@ -1654,54 +1712,56 @@ var UIBuilder = (function () {
 
 
     UIElement.prototype.contentHeight = function () {
-		var node = this.__.node;
-		var s = getComputedStyle(node);
-		// Store initial height styles.
-		var h = node.style.cssText.match(/height\s*:\s*[\d\w%]+/i);
-		h = h === null ? '' : h[0];
-		// Set height to auto and store inner height.
-		node.style.height = 'auto';
-		//var height = node.clientHeight;
-		var height = parseInt(window.getComputedStyle(node).getPropertyValue('height').replace(/[^.\d]/i, ''));
-		// Restore height style.
-		node.style.cssText = node.style.cssText.replace(/height\s*:\s*auto/i, h);
-		return height;
+        var node = this.__.node;
+        var s = getComputedStyle(node);
+        // Store initial height styles.
+        var h = node.style.cssText.match(/height\s*:\s*[\d\w%]+/i);
+        h = h === null ? '' : h[0];
+        // Set height to auto and store inner height.
+        node.style.height = 'auto';
+        //var height = node.clientHeight;
+        var height = parseInt(window.getComputedStyle(node).getPropertyValue('height').replace(/[^.\d]/i, ''));
+        // Restore height style.
+        node.style.cssText = node.style.cssText.replace(/height\s*:\s*auto/i, h);
+        return height;
     };
 
 
     /**
      * Slides down element with specified duration.
-     * @param {int} duration Animation duration in miliseconds (default is 250).
+     * @param {int} duration Animation duration in milliseconds (default is 250).
+     * @param {function} callback Function that will be called when animation will be finished.
      * @return {UIElement} (itself)
      */
     UIElement.prototype.slideDown = function (duration, callback) {
         if (typeof duration !== 'number') duration = 250;
 
-		if(this.isHidden()) this.css({'height' : 0});
+        if(this.isHidden()) this.css({'height' : 0});
         this.css({overflow : 'hidden', display : 'flex'});
 
         this.animate({height: this.contentHeight()}, duration, function () {
             this.css({height: 'auto'});
-			if(typeof callback === 'function') callback.call(this);
+            if(typeof callback === 'function') callback.call(this);
         });
         this.__.fx = 'slideDown';
 
         return this;
     };
-	
-	
+
+
 
 
     /**
      * Slides up element with specified duration.
      * @param {integer} duration Animation duration in miliseconds (default is 250).
+     * @param {function} callback Function that will be called when animation will be finished.
      * @return {UIElement} (itself)
      */
     UIElement.prototype.slideUp = function (duration, callback) {
         // Exit if element is already expanded.
         if (this.outerHeight() === 0 || this.isHidden()) return this;
 
-        if (typeof duration !== 'number') duration = 250
+        if (typeof duration !== 'number') duration = 250;
 
         this.animate({height: 0}, duration, callback);
         this.__.fx = 'slideUp';
@@ -1713,6 +1773,7 @@ var UIBuilder = (function () {
     /**
      * Slides up element with specified duration.
      * @param {integer} duration Animation duration in miliseconds (default is 250).
+     * @param {function} callback Function that will be called when animation will be finished.
      * @return {UIElement} (itself)
      */
     UIElement.prototype.slideToggle = function (duration, callback) {
@@ -1811,7 +1872,7 @@ var UIBuilder = (function () {
      * @param {int} duration Fading duration in miliseconds.
      * @param {string} displayAs If set will be used to set display
      * css property before animation start.
-	 * @param {function} callback
+     * @param {function} callback
      * @returns {UIElement} (itself)
      * @see fadeOut()
      * @see fadeToggle()
@@ -1820,11 +1881,11 @@ var UIBuilder = (function () {
         if (typeof duration === 'string' && displayAs === undefined) {
             displayAs = duration;
         }else if(typeof duration === 'function' && callback === undefined){
-			callback = duration;
-		}else if(typeof displayAs === 'function' && callback === undefined){
-			callback = displayAs;
-		}
-		
+            callback = duration;
+        }else if(typeof displayAs === 'function' && callback === undefined){
+            callback = displayAs;
+        }
+
 
         // Default duration.
         if (typeof duration !== 'number') duration = 250;
@@ -1842,19 +1903,19 @@ var UIBuilder = (function () {
      * @param {int} duration Fading duration in miliseconds.
      * @param {boolean} hideOnEnd If true the css display property will be set to 'none'
      * on animation finish.
-	 * @param {function} callback
+     * @param {function} callback
      * @returns {UIElement} (itself)
      * @see fadeIn()
      * @see fadeToggle()
      */
     UIElement.prototype.fadeOut = function (duration, hideOnEnd, callback) {
         if (this.isHidden() || this.css('opacity') === 0) return this;
-		
-		if(typeof duration === 'function' && callback === undefined){
-			callback = duration;
-		}else if(typeof hideOnEnd === 'function' && callback === undefined){
-			callback = hideOnEnd;
-		}
+
+        if(typeof duration === 'function' && callback === undefined){
+            callback = duration;
+        }else if(typeof hideOnEnd === 'function' && callback === undefined){
+            callback = hideOnEnd;
+        }
 
         // Default duration.
         if (typeof duration !== 'number') duration = 250;
@@ -1883,7 +1944,7 @@ var UIBuilder = (function () {
      * CSS property before animation start in case of fadeIn() method will be applied.
      * If fadeOut() method and displayAs property is specified - element will be hidden after
      * animation finish.
-	 * @param {function} callback
+     * @param {function} callback
      * @returns {UIElement} (itself)
      * @see fadeIn()
      * @see fadeOut()
@@ -1902,7 +1963,8 @@ var UIBuilder = (function () {
      * Animates CSS properties of the object.
      * @param {object} props Object with animated properties.
      * Keys are properties names and values are the end values.
-     * @param {int} duration Duration in milliseconds.
+     * @param {integer} duration Duration in milliseconds.
+     * @param {function} callback Function that will be called when animation will be finished.
      * @return {UIElement} (itself)
      * @see Animation
      */
@@ -1915,24 +1977,24 @@ var UIBuilder = (function () {
         // Get initial values.
         var styles = this.computedStyle();
         for (var p in endVals) {
-			
-			units[p] = styles[p].replace(/[-\d.]/g, '');
-			startVals[p] = parseFloat(styles[p].toString().replace(/[^-\d.]/gi, ''));
-			if((p === 'width' || p === 'maxWidth' || p === 'minWidth') && (endVals[p] + "").indexOf('%') > 0){
-				units[p] = '%';
-				startVals[p] = startVals[p] / this.__.node.parentNode.offsetWidth * 100;
-			}else if((p === 'height' || p === 'maxHeight' || p === 'minHeight') && (endVals[p] + "").indexOf('%') > 0){
-				units[p] = '%';
-				startVals[p] = startVals[p] / this.__.node.parentNode.offsetHeight * 100;
-			}
-			endVals[p] = parseFloat(endVals[p].toString().replace(/[^-\d.]/gi, ''));
+
+            units[p] = styles[p].replace(/[-\d.]/g, '');
+            startVals[p] = parseFloat(styles[p].toString().replace(/[^-\d.]/gi, ''));
+            if((p === 'width' || p === 'maxWidth' || p === 'minWidth') && (endVals[p] + "").indexOf('%') > 0){
+                units[p] = '%';
+                startVals[p] = startVals[p] / this.__.node.parentNode.offsetWidth * 100;
+            }else if((p === 'height' || p === 'maxHeight' || p === 'minHeight') && (endVals[p] + "").indexOf('%') > 0){
+                units[p] = '%';
+                startVals[p] = startVals[p] / this.__.node.parentNode.offsetHeight * 100;
+            }
+            endVals[p] = parseFloat(endVals[p].toString().replace(/[^-\d.]/gi, ''));
         }
-		
-		/*
-		console.log(startVals);
-		console.log(endVals);
-		*/
-		
+
+        /*
+         console.log(startVals);
+         console.log(endVals);
+         */
+
         this.stopAnimation();
 
         // Create new animation.
@@ -1952,9 +2014,9 @@ var UIBuilder = (function () {
                 var k2 = k;
                 diff = endVals[p] - startVals[p];
 
-				
+
                 if (diff === 0) continue;
-				//console.log(parseFloat((diff * k2).toFixed(5)) + startVals[p]);
+                //console.log(parseFloat((diff * k2).toFixed(5)) + startVals[p]);
                 cssObj[p] = parseFloat((diff * k2).toFixed(5)) + startVals[p] + units[p];
             }
             el.css(cssObj);
@@ -1982,7 +2044,7 @@ var UIBuilder = (function () {
     /**
      * Loads data into element.
      *
-     * @param {mixed} data Data to be loaded into the element and/or children.
+     * @param data Data to be loaded into the element and/or children.
      * If [[data]] is object - all nested elements will be loaded with nested data.
      * String will be used as innerHTML.
      * Array produces child instances if child UI is specified for the element.
@@ -1998,7 +2060,7 @@ var UIBuilder = (function () {
         // Set default values.
         if (typeof replace !== 'boolean') replace = true;
         if (typeof atStart !== 'boolean') atStart = false;
-		
+
         // If UIData (data provider) is given through "data" argument
         // use fetch() method and then load given data using load() method.
         if (data instanceof UIData) {
@@ -2015,7 +2077,7 @@ var UIBuilder = (function () {
                 if (typeof data === 'object' && !Array.isArray(data)) {
                     deleteContent = false;
                     for (var p in data) {
-                        if (!UIElement.prototype.hasOwnProperty(p) && !uilist.hasOwnProperty('p')) {
+                        if (!UIElement.prototype.hasOwnProperty(p) && !uiList.hasOwnProperty('p')) {
                             deleteContent = true;
                             break;
                         }
@@ -2067,7 +2129,7 @@ var UIBuilder = (function () {
             if (Array.isArray(data)) {
 
                 if (this.__.child === null) {
-                    warn('Trying to load children for UIElement "' + this.__.name + '" without child UI.');
+                    warn('Trying to load children for UIElement "' + this.__.name + ' @ ' + this.__.uiinstance.__.ui.name + '" without child UI.');
                     return this;
                 }
 
@@ -2097,8 +2159,8 @@ var UIBuilder = (function () {
 
                         // ... otherwise render new UI.
                     } else {
-                        if (uilist.hasOwnProperty(p)) {
-                            uilist[p].renderTo(this).load(data[p], replace, atStart);
+                        if (uiList.hasOwnProperty(p)) {
+                            uiList[p].renderTo(this).load(data[p], replace, atStart);
                         }
                     }
                 }
@@ -2119,8 +2181,8 @@ var UIBuilder = (function () {
      * @param {boolean} compact
      * @returns {{}}
      */
-    UIElement.prototype.resetValues = function () {
-		
+    UIElement.prototype.resetValues = function (compact) {
+
     };
 
 
@@ -2337,24 +2399,24 @@ var UIBuilder = (function () {
     UIElement.prototype.makeTabFor = function (container) {
         this.__.tabContainer = container;
         container.hide();
-		var siblings = this.getAllNearbyElements();
+        var siblings = this.getAllNearbyElements();
         this.on('click', tabClickHandler);
-		
-		for(var i = 0, len = siblings.length; i < len; i++){
-			if(siblings[i].isTab()){
-				return this;
-			}
-		}
-		
-		this.addClass('active');
-		container
-			.addClass('active')
-			.css({
-				display: 'flex',
-				opacity: 1
-			});
-		
-		return this;
+
+        for(var i = 0, len = siblings.length; i < len; i++){
+            if(siblings[i].isTab()){
+                return this;
+            }
+        }
+
+        this.addClass('active');
+        container
+            .addClass('active')
+            .css({
+                display: 'flex',
+                opacity: 1
+            });
+
+        return this;
     };
 
 
@@ -2377,11 +2439,11 @@ var UIBuilder = (function () {
         var c = this.getAllNearbyElements();
         for (var i = 0, len = c.length; i < len; i++) {
             if(c[i].isTab()){
-				c[i].removeClass('active');
-				c[i].__.tabContainer.fadeOut(100, function(){
-					this.hide();
-				});
-			}
+                c[i].removeClass('active');
+                c[i].__.tabContainer.fadeOut(100, function(){
+                    this.hide();
+                });
+            }
         }
         this.addClass('active');
 
@@ -2396,6 +2458,10 @@ var UIBuilder = (function () {
 
         container.addClass('active');
     }
+
+
+
+
 
 
 
@@ -2417,7 +2483,7 @@ var UIBuilder = (function () {
      * - complete (When data fetching process is complete)
      * - dataready (When data is successfully fetched)
      * - error (If error is occurred)
-	 * - progress (If a part of all data was fetched. Percentage of the data done must be passed in the second argument.)
+     * - progress (If a part of all data was fetched. Percentage of the data done must be passed in the second argument.)
      *
      * @param {function} callback
      * @see UIData
@@ -2443,8 +2509,7 @@ var UIBuilder = (function () {
     function ajaxCollector(callback) {
         if (typeof callback !== 'function') {
             this.triggerEvent('error');
-            error('Callback for the ajaxCollector is not a function (' + typeof callback + ' given).');
-            return false;
+            warn('Callback for the ajaxCollector is not a function (' + typeof callback + ' given).');
         }
 
         if (typeof this.url !== 'string') {
@@ -2465,9 +2530,9 @@ var UIBuilder = (function () {
         };
 
         xhttp.onreadystatechange = function () {
-            if (this.readyState != 4) return;
+            if (this.readyState !== 4) return;
 
-            if (this.status == 200) {
+            if (this.status === 200) {
 
                 // Make redirection if X-Redirect header is specified.
                 var url = this.getResponseHeader('X-Redirect');
@@ -2505,11 +2570,21 @@ var UIBuilder = (function () {
         // Set header that indicates that request was made by AJAX.
         xhttp.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
+        // Add CSRF token to the header if it's set and method is POST.
+        if(_uidata.useCsrf && csrfToken !== null){
+            xhttp.setRequestHeader(csrfParam, csrfToken);
+        }
+
+
         if (this.method.toUpperCase() === 'POST') {
             xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
             var data = [];
             for (var p in this._parameters) {
                 data.push(encodeURIComponent(p) + '=' + encodeURIComponent(this._parameters[p]));
+            }
+            // Add CSRF token to the request if it's set and method is POST.
+            if(_uidata.useCsrf && csrfToken !== null){
+                data.push(csrfParam + '=' + csrfToken);
             }
             xhttp.send(data.join('&'));
         } else {
@@ -2518,18 +2593,6 @@ var UIBuilder = (function () {
 
         return true;
     }
-
-
-
-
-
-
-
-    function websocketCollector()
-    {
-
-    }
-
 
 
 
@@ -2556,7 +2619,7 @@ var UIBuilder = (function () {
      * the parameters() method can be used for this purposes.
      *
      * The next events are available:
-     * - fetch (Occurres when fetch() method is called)
+     * - fetch (Occurred when fetch() method is called)
      * - progress (When another part of data is ready)
      * - dataready (When UIData is ready to return data)
      * - error (If error is occurred during data fetching an error event will be triggered)
@@ -2577,7 +2640,7 @@ var UIBuilder = (function () {
 
         this.ready = true;         // Flag if UIData is ready to fetching.
         this.cache = null;         // Data got by last fetch.
-        this.cacheLifetime = null; // Lifetime of cache. Null - infinity.
+        this.cacheLifetime = null; // Lifetime of cache. null - not used. 0 - until page refresh.
         this.allowMultiple = true;
 
         // Set the collector.
@@ -2610,9 +2673,9 @@ var UIBuilder = (function () {
      * @returns {UIData}
      */
     UIData.prototype.parameters = function (parameters) {
-		if(parameters === undefined){
-			return this._parameters;
-		}
+        if(parameters === undefined){
+            return this._parameters;
+        }
         this._parameters = parameters;
         return this;
     };
@@ -2620,7 +2683,7 @@ var UIBuilder = (function () {
 
 
     /**
-     * Fethces data by executing collector.
+     * Fetches data by executing collector.
      */
     UIData.prototype.fetch = function (callback) {
         this.triggerEvent('fetch');
@@ -2661,6 +2724,7 @@ var UIBuilder = (function () {
     function UIDataAjax(params)
     {
         UIData.call(this, params);
+        this.useCsrf = params.hasOwnProperty('useCsrf') ? params.useCsrf : true;
         this.url = params.hasOwnProperty('url') ? params.url : '';
         this.method = 'POST';
         this.collector = ajaxCollector;
@@ -2682,12 +2746,14 @@ var UIBuilder = (function () {
     _uibuilder.UIDataAjax = UIDataAjax;
 
 
-
-
-
-
-
-
+    /**
+     * WebSocket data provider.
+     * Established connection and provides methods and events
+     * to work with it.
+     * Uses UIWebSocketCollector as data collector.
+     * @param params
+     * @constructor
+     */
     function UIDataWS(params)
     {
         UIData.call(this, params);
@@ -2768,13 +2834,13 @@ var UIBuilder = (function () {
     {
         if(this.conn !== null) return;
         var conn = new WebSocket(this.url);
+        this.conn = conn;
 
         var _this = this;
         var ti;
 
         // Handle connection establishing.
         conn.onopen = function(){
-            _this.conn = conn;
             if(_this.authRequestMessage !== null){
                 _this.conn.send(_this.authRequestMessage);
             }
@@ -2783,7 +2849,7 @@ var UIBuilder = (function () {
         };
 
         // Handle losing connection and try to reconnect.
-        conn.onclose = function (e) {
+        conn.onclose = function() {
             _this.authorized = false;
             _this.conn = null;
             _this.tokens = {};
@@ -2894,7 +2960,7 @@ var UIBuilder = (function () {
         this.items = Array.isArray(items) ? [] : items;
     }
 
-    Collection.prototype = Object.create(UIElement.prototype)
+    Collection.prototype = Object.create(UIElement.prototype);
 
     Collection.prototype.remove = function () {
         for (var i = 0, len = this.items.length; i < len; i++) {
@@ -2929,10 +2995,10 @@ var UIBuilder = (function () {
      * @param {object} options
      */
     function Animation(options) {
-		var duration = typeof options === 'number' ? options : 250;
-		if(typeof options !== 'object') {
-			options = {};
-		}
+        var duration = typeof options === 'number' ? options : 250;
+        if(typeof options !== 'object') {
+            options = {};
+        }
         this.start = options.start || 0;
         this.end = options.end || 1;
         this.duration = options.duration || duration;
@@ -3152,93 +3218,89 @@ var UIBuilder = (function () {
      * Also animation can be defined for fading effect.
      * This section will be done later.
      */
-	function Spinner(params)
-	{
-		// Extending UI.
-		UI.call(this, params);
-	}
-	Spinner.prototype = Object.create(UI.prototype);
-	
-	
-	/**
-	 * Renders spinner inside target element.
-	 * Fades in just after rendering.
-	 * Node that if you want to apply your own fading effects 
-	 * please use onfadein event in the parameters.
-	 */
-	Spinner.prototype.showInside = function(target, params)
-	{
-		var s = this.renderTo(target, params);
-		
-		var event = new UIEvent('fadein');
-		event.target = this;
-		this.triggerEvent('fadein',s , event);
-		
-		// If event was not prevented - use default fading effect.
-		if(!event.canceled){
-			var root = s.getRootElement();
-			if (root !== null) {
-				root.css({opacity : 0}).fadeIn();
-			}
-		}
-	};
-	
-	
-	/**
-	 * Hides all spinners inside target element.
-	 * Fades out just before removing.
-	 * Node that if you want to apply your own fading effects 
-	 * please use onfadeout event in the parameters.
-	 */
-	Spinner.prototype.hideInside = function(target)
-	{
-		var children;
-		if(target instanceof UIElement){
-			children = target.children();
-		}else{
-			children = target.childNodes;
-		}
-		var arr = []
-		for(var i = 0; i < children.length; i++){
-			arr[i] = children[i];
-		}
-		for(var i = 0; i < arr.length; i++){
-			var child = arr[i];
-			if(!(child instanceof UIInstance)){
-				child = child.uiinstance;
-				if(!(child instanceof UIInstance)) continue;
-			}
-			if(child.UI() !== this) continue;
-			
-			var event = new UIEvent('fadeout');
-			event.target = this;
-			this.triggerEvent('fadeout',child , event);
-			
-			// If event was not prevented - use default fading effect and then remove spinner instance.
-			if(!event.canceled){
-				(function(){
-					var root = child.getRootElement();
-					if (root !== null) {
-						root.animate({
-							opacity : 0
-						}, 250, function(){
-							if(child !== undefined) child.remove();
-						});
-					}
-				})();
-			}
-		}
-	};
-	
-	
-	// Add unique function for registering spinners.
-	_uibuilder.registerSpinner = function(data){
-		checkUIParameters(data);
-        uilist[data.name] = new Spinner(data);
-        _uibuilder.triggerEvent('register', uilist[data.name]);
-	};
-	
-	
+    function Spinner(params)
+    {
+        // Extending UI.
+        UI.call(this, params);
+    }
+    Spinner.prototype = Object.create(UI.prototype);
+
+
+    /**
+     * Renders spinner inside target element.
+     * Fades in just after rendering.
+     * Node that if you want to apply your own fading effects
+     * please use onfadein event in the parameters.
+     */
+    Spinner.prototype.showInside = function(target, params)
+    {
+        var inst = this.renderTo(target, params);
+
+        var event = new UIEvent('fadein');
+        event.target = this;
+        this.triggerEvent('fadein', inst, event);
+
+        // If event was not prevented - use default fading effect.
+        if(!event.canceled){
+            var root = inst.getRootElement();
+            if (root !== null) {
+                root.css({opacity : 0}).fadeIn();
+            }
+        }
+    };
+
+
+    /**
+     * Hides all spinners inside target element.
+     * Fades out just before removing.
+     * Node that if you want to apply your own fading effects
+     * please use onfadeout event in the parameters.
+     */
+    Spinner.prototype.hideInside = function(target)
+    {
+        var children;
+        if(target instanceof UIElement){
+            children = target.children();
+        }else{
+            children = target.childNodes;
+        }
+        var arr = [];
+        for(var i = 0; i < children.length; i++){
+            arr[i] = children[i];
+        }
+        for(var i = 0; i < arr.length; i++){
+            var child = arr[i];
+            if(!(child instanceof UIInstance)){
+                child = child.uiinstance;
+                if(!(child instanceof UIInstance)) continue;
+            }
+            if(child.UI() !== this) continue;
+
+            var event = new UIEvent('fadeout');
+            event.target = this;
+            this.triggerEvent('fadeout',child , event);
+
+            // If event was not prevented - use default fading effect and then remove spinner instance.
+            if(!event.canceled){
+                var root = child.getRootElement();
+                if (root !== null) {
+                    root.animate({opacity : 0}, 250, function(){
+                        if(child !== undefined) child.remove();
+                    });
+                }
+            }
+        }
+    };
+
+
+    // Add unique function for registering spinners.
+    _uibuilder.registerSpinner = function(data){
+        checkUIParameters(data);
+        uiList[data.name] = new Spinner(data);
+        _uibuilder.triggerEvent('register', uiList[data.name]);
+    };
+
+
 
 
     /**
@@ -3247,311 +3309,892 @@ var UIBuilder = (function () {
      * ---------------------------
      *
      * Methods that used for implementing dropdown mechanic.
-	 * For marking dropdowns used speciall class - .dropdown
-	 * If dropdown is shown - .shown class will be used.
+     * For marking dropdowns used speciall class - .dropdown
+     * If dropdown is shown - .shown class will be used.
+     *
+     * @return UIElement
      */
-	UIElement.prototype.makeDropdown = function(target)
-	{
-		this.addClass('dropdown-handle');
-		target.addClass('dropdown');
-		target.hide();
-		this.__.dropdownTarget = target;
-		target.__.dropdownHandle = this;
-		this.on('click', dropdownHandler);
-	}
-	
-	function dropdownHandler()
-	{
-		this.toggleClass('dropdown-expanded');
-		this.__.dropdownTarget
-			.toggleClass('dropdown-expanded')
-			.slideDown(100, function(){
-				this.css({display: 'flex'});
-			});
-	}
-	
-	
-	document.addEventListener('mousedown', function(e){
-		var items = document.getElementsByClassName('dropdown');
-		for(var i = 0, len = items.length; i < len; i++){
-			if(items[i].uielement instanceof UIElement){
-				if(items[i].uielement.__.dropdownHandle instanceof UIElement){
-					items[i].uielement.css({display: 'none'});
-				}
-			}
-		}
-	});
+    UIElement.prototype.makeDropdown = function(target, collapseOnSecondClick)
+    {
+        this.addClass('dropdown-handle');
+        target.addClass('dropdown');
+        target.hide();
+        this.__.dropdownTarget = target;
+        target.__.dropdownHandle = this;
+        this.on('click', dropdownHandler);
+        return this;
+    };
 
-	
-	
-	
-	/**
+
+    /**
+     * Dropdown click handler.
+     */
+    function dropdownHandler()
+    {
+        var expand = !this.hasClass('dropdown-expanded');
+        var target = this.__.dropdownTarget;
+
+        var event = new UIEvent('blur');
+        target.triggerEvent('blur', this, event);
+
+        // Stop do anything if event is canceled.
+        if(event.canceled){
+            return;
+        }
+
+        if(expand){
+            this.addClass('dropdown-expanded');
+            target.addClass('dropdown-expanded');
+            event = new UIEvent('expand');
+            target.triggerEvent('expand', this, event);
+            // Use default expanding animation if event is canceled.
+            if(!event.canceled){
+                target.slideDown(100, function(){
+                    this.css({display: 'flex'});
+                });
+            }
+        }else{
+            this.removeClass('dropdown-expanded');
+            target.removeClass('dropdown-expanded');
+            event = new UIEvent('collapse');
+            target.triggerEvent('collapse', this, event);
+            // Use default collapsing animation if event is canceled.
+            if(!event.canceled){
+                target.slideUp(100, function(){
+                    this.css({display: 'none'});
+                });
+            }
+        }
+    }
+
+
+    document.addEventListener('mousedown', function(e){
+        var target = e.target;
+
+        // Loop through parents to check if user clicked on the expanded.
+        while( (
+                       !(target.uielement instanceof UIElement)
+                    || !(target.uielement.__.dropdownHandle instanceof UIElement)
+                )
+            && target !== document.body
+        ){
+            if(target.uielement instanceof UIElement && target.uielement.__.dropdownTarget instanceof UIElement){
+                target = target.uielement.__.dropdownTarget.__.node;
+                break;
+            }
+            if(target.uielement instanceof UIElement && target.uielement.__.dropdownHandle instanceof UIElement){
+                target = target.uielement.__.node;
+                break;
+            }
+            target = target.parentNode;
+            if(target === null){
+                break;
+            }
+        }
+
+        var items = document.getElementsByClassName('dropdown-expanded');
+        items = Array.prototype.slice.call(items);
+
+        for(var i = 0, len = items.length; i < len; i++){
+            console.log(5);
+            if(items[i] === target) continue;
+            if(items[i].uielement instanceof UIElement
+                && items[i].uielement.__.dropdownTarget instanceof UIElement
+                && items[i].uielement.__.dropdownTarget.__.node === target
+            ){
+                continue;
+            }
+
+
+            if(items[i].uielement instanceof UIElement){
+
+                if(items[i].uielement.__.dropdownHandle instanceof UIElement){
+                    if(items[i].uielement.__.dropdownHandle === target) continue;
+                    items[i].uielement.removeClass('dropdown-expanded');
+                    items[i].uielement.__.dropdownHandle.removeClass('dropdown-expanded');
+
+                    // Collapse dropdown.
+                    var event = new UIEvent('collapse');
+                    items[i].uielement.triggerEvent('collapse', items[i].uielement, event);
+                    if(!event.canceled){
+                        items[i].uielement.slideUp(100, function(){
+                            this.css({display: 'none'});
+                        });
+                    }
+                }
+            }
+        }
+    });
+
+
+
+
+    /**
      *           Colors
      * ___________________________
      * ---------------------------
      *
      * Color is on object that represents color.
-	 * Can be used in any supported format: hex, RGBA, HSL.
-	 * Also provides few functions to manipulation: lighten(), darken(), saturated(), desaturated().
+     * Can be used in any supported format: hex, RGBA, HSL.
+     * Also provides few functions to manipulation: lighten(), darken(), saturated(), desaturated().
      */
-	function Color(r, g, b, a)
-	{
-		// RGBA
-		this.r = 0;
-		this.g = 0;
-		this.b = 0;
-		this.a = 1;
-		
-		// HSL
-		this.h = 0;
-		this.s = 0;
-		this.l = 0;
-	}	 
- 
-	
-	
-	
-	
-	
-	/**
+    function Color(c) {
+        if (!(this instanceof Color)) { return new Color(c); }
+        if (typeof c === "object") {return c; }
+        this.attachValues(toColorObject(c));
+    }
+
+    _uibuilder.Color = Color;
+
+
+    function toColorObject(c) {
+        var x, y, typ, arr = [], arrlength, i, opacity, match, a, hue, sat, rgb, colornames = [], colorhexs = [];
+        c = w3trim(c.toLowerCase());
+        x = c.substr(0,1).toUpperCase();
+        y = c.substr(1);
+        a = 1;
+        if ((x === "R" || x === "Y" || x === "G" || x === "C" || x === "B" || x === "M" || x === "W") && !isNaN(y)) {
+            if (c.length === 6 && c.indexOf(",") === -1) {
+            } else {
+                c = "ncol(" + c + ")";
+            }
+        }
+        if (c.length !== 3 && c.length !== 6 && !isNaN(c)) {c = "ncol(" + c + ")";}
+        if (c.indexOf(",") > 0 && c.indexOf("(") === -1) {c = "ncol(" + c + ")";}
+        if (c.substr(0, 3) === "rgb" || c.substr(0, 3) === "hsl" || c.substr(0, 3) === "hwb" || c.substr(0, 4) === "ncol" || c.substr(0, 4) === "cmyk") {
+            if (c.substr(0, 4) === "ncol") {
+                if (c.split(",").length === 4 && c.indexOf("ncola") === -1) {
+                    c = c.replace("ncol", "ncola");
+                }
+                typ = "ncol";
+                c = c.substr(4);
+            } else if (c.substr(0, 4) === "cmyk") {
+                typ = "cmyk";
+                c = c.substr(4);
+            } else {
+                typ = c.substr(0, 3);
+                c = c.substr(3);
+            }
+            arrlength = 3;
+            opacity = false;
+            if (c.substr(0, 1).toLowerCase() === "a") {
+                arrlength = 4;
+                opacity = true;
+                c = c.substr(1);
+            } else if (typ === "cmyk") {
+                arrlength = 4;
+                if (c.split(",").length === 5) {
+                    arrlength = 5;
+                    opacity = true;
+                }
+            }
+            c = c.replace("(", "");
+            c = c.replace(")", "");
+            arr = c.split(",");
+            if (typ === "rgb") {
+                if (arr.length !== arrlength) {
+                    return emptyObject();
+                }
+                for (i = 0; i < arrlength; i++) {
+                    if (arr[i] === "" || arr[i] === " ") {arr[i] = "0"; }
+                    if (arr[i].indexOf("%") > -1) {
+                        arr[i] = arr[i].replace("%", "");
+                        arr[i] = Number(arr[i] / 100);
+                        if (i < 3 ) {arr[i] = Math.round(arr[i] * 255);}
+                    }
+                    if (isNaN(arr[i])) {return emptyObject(); }
+                    if (parseInt(arr[i]) > 255) {arr[i] = 255; }
+                    if (i < 3) {arr[i] = parseInt(arr[i]);}
+                    if (i === 3 && Number(arr[i]) > 1) {arr[i] = 1;}
+                }
+                rgb = {r : arr[0], g : arr[1], b : arr[2]};
+                if (opacity === true) {a = Number(arr[3]);}
+            }
+            if (typ === "hsl" || typ === "hwb" || typ === "ncol") {
+                while (arr.length < arrlength) {arr.push("0"); }
+                if (typ === "hsl" || typ === "hwb") {
+                    if (parseInt(arr[0]) >= 360) {arr[0] = 0; }
+                }
+                for (i = 1; i < arrlength; i++) {
+                    if (arr[i].indexOf("%") > -1) {
+                        arr[i] = arr[i].replace("%", "");
+                        arr[i] = Number(arr[i]);
+                        if (isNaN(arr[i])) {return emptyObject(); }
+                        arr[i] = arr[i] / 100;
+                    } else {
+                        arr[i] = Number(arr[i]);
+                    }
+                    if (Number(arr[i]) > 1) {arr[i] = 1;}
+                    if (Number(arr[i]) < 0) {arr[i] = 0;}
+                }
+                if (typ === "hsl") {rgb = hslToRgb(arr[0], arr[1], arr[2]); hue = Number(arr[0]); sat = Number(arr[1]);}
+                if (typ === "hwb") {rgb = hwbToRgb(arr[0], arr[1], arr[2]);}
+                if (typ === "ncol") {rgb = ncolToRgb(arr[0], arr[1], arr[2]);}
+                if (opacity === true) {a = Number(arr[3]);}
+            }
+            if (typ === "cmyk") {
+                while (arr.length < arrlength) {arr.push("0"); }
+                for (i = 0; i < arrlength; i++) {
+                    if (arr[i].indexOf("%") > -1) {
+                        arr[i] = arr[i].replace("%", "");
+                        arr[i] = Number(arr[i]);
+                        if (isNaN(arr[i])) {return emptyObject(); }
+                        arr[i] = arr[i] / 100;
+                    } else {
+                        arr[i] = Number(arr[i]);
+                    }
+                    if (Number(arr[i]) > 1) {arr[i] = 1;}
+                    if (Number(arr[i]) < 0) {arr[i] = 0;}
+                }
+                rgb = cmykToRgb(arr[0], arr[1], arr[2], arr[3]);
+                if (opacity === true) {a = Number(arr[4]);}
+            }
+        } else if (c.substr(0, 3) === "ncs") {
+            rgb = ncsToRgb(c);
+        } else {
+            match = false;
+            colornames = getColorArr('names');
+            for (i = 0; i < colornames.length; i++) {
+                if (c.toLowerCase() === colornames[i].toLowerCase()) {
+                    colorhexs = getColorArr('hexs');
+                    match = true;
+                    rgb = {
+                        r : parseInt(colorhexs[i].substr(0,2), 16),
+                        g : parseInt(colorhexs[i].substr(2,2), 16),
+                        b : parseInt(colorhexs[i].substr(4,2), 16)
+                    };
+                    break;
+                }
+            }
+            if (match === false) {
+                c = c.replace("#", "");
+                if (c.length === 3) {c = c.substr(0,1) + c.substr(0,1) + c.substr(1,1) + c.substr(1,1) + c.substr(2,1) + c.substr(2,1);}
+                for (i = 0; i < c.length; i++) {
+                    if (!isHex(c.substr(i, 1))) {return emptyObject(); }
+                }
+                arr[0] = parseInt(c.substr(0,2), 16);
+                arr[1] = parseInt(c.substr(2,2), 16);
+                arr[2] = parseInt(c.substr(4,2), 16);
+                for (i = 0; i < 3; i++) {
+                    if (isNaN(arr[i])) {return emptyObject(); }
+                }
+                rgb = {
+                    r : arr[0],
+                    g : arr[1],
+                    b : arr[2]
+                };
+            }
+        }
+        return colorObject(rgb, a, hue, sat);
+    }
+
+
+    function colorObject(rgb, a, h, s) {
+        var hsl, hwb, cmyk, ncol, color, hue, sat;
+        if (!rgb) {return emptyObject();}
+        if (!a) {a = 1;}
+        hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        hwb = rgbToHwb(rgb.r, rgb.g, rgb.b);
+        cmyk = rgbToCmyk(rgb.r, rgb.g, rgb.b);
+        hue = (h || hsl.h);
+        sat = (s || hsl.s);
+        ncol = hueToNcol(hue);
+        color = {
+            red : rgb.r,
+            green : rgb.g,
+            blue : rgb.b,
+            hue : hue,
+            sat : sat,
+            lightness : hsl.l,
+            whiteness : hwb.w,
+            blackness : hwb.b,
+            cyan : cmyk.c,
+            magenta : cmyk.m,
+            yellow : cmyk.y,
+            black : cmyk.k,
+            ncol : ncol,
+            opacity : a,
+            valid : true
+        };
+        color = roundDecimals(color);
+        return color;
+    }
+    function emptyObject() {
+        return {
+            red : 0,
+            green : 0,
+            blue : 0,
+            hue : 0,
+            sat : 0,
+            lightness : 0,
+            whiteness : 0,
+            blackness : 0,
+            cyan : 0,
+            magenta : 0,
+            yellow : 0,
+            black : 0,
+            ncol : "R",
+            opacity : 1,
+            valid : false
+        };
+    }
+
+
+    /**
+     * Converts HSL color to the RGB color.
+     * @param hue
+     * @param sat
+     * @param light
+     * @returns {{r: (number|*), g: (number|*), b: (number|*)}}
+     */
+    function hslToRgb(hue, sat, light) {
+        var t1, t2, r, g, b;
+        hue = hue / 60;
+        if ( light <= 0.5 ) {
+            t2 = light * (sat + 1);
+        } else {
+            t2 = light + sat - (light * sat);
+        }
+        t1 = light * 2 - t2;
+        r = hueToRgb(t1, t2, hue + 2) * 255;
+        g = hueToRgb(t1, t2, hue) * 255;
+        b = hueToRgb(t1, t2, hue - 2) * 255;
+        return {r : r, g : g, b : b};
+    }
+
+
+    function hueToRgb(t1, t2, hue) {
+        if (hue < 0) hue += 6;
+        if (hue >= 6) hue -= 6;
+        if (hue < 1) return (t2 - t1) * hue + t1;
+        else if(hue < 3) return t2;
+        else if(hue < 4) return (t2 - t1) * (4 - hue) + t1;
+        else return t1;
+    }
+
+
+    /**
+     * Converts RGB to the HSL.
+     * @param r
+     * @param g
+     * @param b
+     * @returns {{h: (number), s: (number), l: (number)}}
+     */
+    function rgbToHsl(r, g, b) {
+        var min, max, i, l, s, maxColor, h, rgb = [];
+        rgb[0] = r / 255;
+        rgb[1] = g / 255;
+        rgb[2] = b / 255;
+        min = rgb[0];
+        max = rgb[0];
+        maxColor = 0;
+        for (i = 0; i < rgb.length - 1; i++) {
+            if (rgb[i + 1] <= min) {min = rgb[i + 1];}
+            if (rgb[i + 1] >= max) {max = rgb[i + 1];maxColor = i + 1;}
+        }
+        if (maxColor === 0) {
+            h = (rgb[1] - rgb[2]) / (max - min);
+        }
+        if (maxColor === 1) {
+            h = 2 + (rgb[2] - rgb[0]) / (max - min);
+        }
+        if (maxColor === 2) {
+            h = 4 + (rgb[0] - rgb[1]) / (max - min);
+        }
+        if (isNaN(h)) {h = 0;}
+        h = h * 60;
+        if (h < 0) {h = h + 360; }
+        l = (min + max) / 2;
+        if (min === max) {
+            s = 0;
+        } else {
+            if (l < 0.5) {
+                s = (max - min) / (max + min);
+            } else {
+                s = (max - min) / (2 - max - min);
+            }
+        }
+        return {h : h, s : s, l : l};
+    }
+
+
+    /**
+     * Converts number in decimal to the number in hex.
+     * @param n {integer}
+     * @returns {string}
+     */
+    function toHex(n) {
+        var hex = n.toString(16);
+        while (hex.length < 2) {hex = "0" + hex; }
+        return hex;
+    }
+
+
+    /**
+     * Checks if given value is hex number.
+     * @param x
+     * @returns {boolean}
+     */
+    function isHex(x) {
+        return ('0123456789ABCDEFabcdef'.indexOf(x) > -1);
+    }
+
+
+
+    Color.prototype = {
+        toRgbString : function () {
+            return "rgb(" + this.red + ", " + this.green + ", " + this.blue + ")";
+        },
+        toRgbaString : function (alpha) {
+            if(alpha === undefined) alpha = this.opacity;
+            return "rgba(" + this.red + ", " + this.green + ", " + this.blue + ", " + alpha + ")";
+        },
+        toHwbString : function () {
+            return "hwb(" + this.hue + ", " + Math.round(this.whiteness * 100) + "%, " + Math.round(this.blackness * 100) + "%)";
+        },
+        toHwbStringDecimal : function () {
+            return "hwb(" + this.hue + ", " + this.whiteness + ", " + this.blackness + ")";
+        },
+        toHwbaString : function () {
+            return "hwba(" + this.hue + ", " + Math.round(this.whiteness * 100) + "%, " + Math.round(this.blackness * 100) + "%, " + this.opacity + ")";
+        },
+        toHslString : function () {
+            return "hsl(" + this.hue + ", " + Math.round(this.sat * 100) + "%, " + Math.round(this.lightness * 100) + "%)";
+        },
+        toHslStringDecimal : function () {
+            return "hsl(" + this.hue + ", " + this.sat + ", " + this.lightness + ")";
+        },
+        toHslaString : function () {
+            return "hsla(" + this.hue + ", " + Math.round(this.sat * 100) + "%, " + Math.round(this.lightness * 100) + "%, " + this.opacity + ")";
+        },
+        toCmykString : function () {
+            return "cmyk(" + Math.round(this.cyan * 100) + "%, " + Math.round(this.magenta * 100) + "%, " + Math.round(this.yellow * 100) + "%, " + Math.round(this.black * 100) + "%)";
+        },
+        toCmykStringDecimal : function () {
+            return "cmyk(" + this.cyan + ", " + this.magenta + ", " + this.yellow + ", " + this.black + ")";
+        },
+        toNcolString : function () {
+            return this.ncol + ", " + Math.round(this.whiteness * 100) + "%, " + Math.round(this.blackness * 100) + "%";
+        },
+        toNcolStringDecimal : function () {
+            return this.ncol + ", " + this.whiteness + ", " + this.blackness;
+        },
+        toNcolaString : function () {
+            return this.ncol + ", " + Math.round(this.whiteness * 100) + "%, " + Math.round(this.blackness * 100) + "%, " + this.opacity;
+        },
+        toName : function () {
+            var r, g, b, colorhexs = getColorArr('hexs');
+            for (i = 0; i < colorhexs.length; i++) {
+                r = parseInt(colorhexs[i].substr(0,2), 16);
+                g = parseInt(colorhexs[i].substr(2,2), 16);
+                b = parseInt(colorhexs[i].substr(4,2), 16);
+                if (this.red == r && this.green == g && this.blue == b) {
+                    return getColorArr('names')[i];
+                }
+            }
+            return "";
+        },
+        toHexString : function () {
+            var r = toHex(this.red);
+            var g = toHex(this.green);
+            var b = toHex(this.blue);
+            return "#" +  r + g + b;
+        },
+        toRgb : function () {
+            return {r : this.red, g : this.green, b : this.blue, a : this.opacity};
+        },
+        toHsl : function () {
+            return {h : this.hue, s : this.sat, l : this.lightness, a : this.opacity};
+        },
+        toHwb : function () {
+            return {h : this.hue, w : this.whiteness, b : this.blackness, a : this.opacity};
+        },
+        toCmyk : function () {
+            return {c : this.cyan, m : this.magenta, y : this.yellow, k : this.black, a : this.opacity};
+        },
+        toNcol : function () {
+            return {ncol : this.ncol, w : this.whiteness, b : this.blackness, a : this.opacity};
+        },
+        isDark : function (n) {
+            var m = (n || 128);
+            return (((this.red * 299 + this.green * 587 + this.blue * 114) / 1000) < m);
+        },
+        saturate : function (n) {
+            var x, rgb, color;
+            x = (n / 100 || 0.1);
+            this.sat += x;
+            if (this.sat > 1) {this.sat = 1;}
+            rgb = hslToRgb(this.hue, this.sat, this.lightness);
+            color = colorObject(rgb, this.opacity, this.hue, this.sat);
+            this.attachValues(color);
+        },
+        desaturate : function (n) {
+            var x, rgb, color;
+            x = (n / 100 || 0.1);
+            this.sat -= x;
+            if (this.sat < 0) {this.sat = 0;}
+            rgb = hslToRgb(this.hue, this.sat, this.lightness);
+            color = colorObject(rgb, this.opacity, this.hue, this.sat);
+            this.attachValues(color);
+        },
+        lighter : function (n) {
+            var x, rgb, color;
+            x = (n / 100 || 0.1);
+            this.lightness += x;
+            if (this.lightness > 1) {this.lightness = 1;}
+            rgb = hslToRgb(this.hue, this.sat, this.lightness);
+            color = colorObject(rgb, this.opacity, this.hue, this.sat);
+            this.attachValues(color);
+        },
+        darker : function (n) {
+            var x, rgb, color;
+            x = (n / 100 || 0.1);
+            this.lightness -= x;
+            if (this.lightness < 0) {this.lightness = 0;}
+            rgb = hslToRgb(this.hue, this.sat, this.lightness);
+            color = colorObject(rgb, this.opacity, this.hue, this.sat);
+            this.attachValues(color);
+        },
+        attachValues : function(color) {
+            this.red = color.red;
+            this.green = color.green;
+            this.blue = color.blue;
+            this.hue = color.hue;
+            this.sat = color.sat;
+            this.lightness = color.lightness;
+            this.whiteness = color.whiteness;
+            this.blackness = color.blackness;
+            this.cyan = color.cyan;
+            this.magenta = color.magenta;
+            this.yellow = color.yellow;
+            this.black = color.black;
+            this.ncol = color.ncol;
+            this.opacity = color.opacity;
+            this.valid = color.valid;
+        }
+    };
+
+
+
+    /**
      *           Templates
      * ___________________________
      * ---------------------------
      *
-     * Template is a special object that encapsulates styles and 
-	 * provides simple API to get/set properties, switching theme with 
-	 * on-the-fly interface updating.
+     * Template is a special object that encapsulates styles and
+     * provides simple API to get/set properties, switching theme with
+     * on-the-fly interface updating.
      */
 
 
-	/**
-	 * @var {object} Object that describes CSS styles spell-checking regular expressions.
-	 */
-	var styles = {
-		// Border
-		border : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
-		borderLeft : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
-		borderRight : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
-		borderTop : /(none|initial|d\{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
-		borderBottom : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
-		borderRadius : /(none|0|initial|\d+(px|%|em|rem))/i,
-		borderWidth : /(0|initial|\d+(px|%|em|rem))/i,
-		borderColor : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
-		borderStyle : /(initial|solid|dotted|dashed)/i,
-		// Font
-		fontSize : /(initial|inherit|(\d+(px|em|rem|%)))/i,
-		fontStyle : /(initial|inherit|italic|normal)/i,
-		color : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
-		backgroundColor : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
-		// Width
-		width : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
-		maxWidth : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
-		minWidth : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
-		// Height
-		height : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
-		minHeight : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
-		maxHeight : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
-		display : /(none|block|inline|inline-block|flex|table|table-cell|table-row)/i,
-		// Position
-		position : /(initial|static|fixed|relativa|absolute)/i,
-		top : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		left : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		bottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		right : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		position : /(initial|static|fixed|relativa|absolute)/i,
-		// Margin
-		margin : /(initial|0|(-?\d+(px|em|rem|%)(\s+-?\d+(px|em|rem|%)){0,3}))/i,
-		marginTop : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		marginLeft : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		marginBottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		marginRight : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		// Padding
-		padding : /(initial|0|(-?\d+(px|em|rem|%)(\s+-?\d+(px|em|rem|%)){0,3}))/i,
-		paddingTop : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		paddingLeft : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		paddingBottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		paddingRight : /(initial|0|(-?\d+(px|em|rem|%)))/i,
-		// Shadows
-		boxShadow : /(initial|none|(inset\s+)?-?\d+(px|em|rem|%)?\s+-?\d+(px|em|rem|%)?\s+\d+(px|em|rem|%)?\s+(\d+(px|em|rem|%)?\s+)?(#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
-		textShadow : /(initial|none|(inset\s+)?-?\d+(px|em|rem|%)?\s+-?\d+(px|em|rem|%)?\s+\d+(px|em|rem|%)?\s+(\d+(px|em|rem|%)?\s+)?(#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
-		// Transform
-		
-		
-	};
-	
-	
-	/**
-	 * Exported function.
-	 */
-	var _theme = (function()
-	{
-		var themes = {};
-		var currentTheme = null;
-		
-		
-		function t(name)
-		{
-			return new StyleGetter(name);
-		}
-		
-		
-		/**
-		 * Registers new theme.
-		 * Exported method.
-		 */
-		t.register = function(name, params)
-		{
-			if(!themes.hasOwnProperty(name)){
-				themes[name] = new Theme(name, params);
-				return true;
-			}
-			warn('Theme with name "' + name + '" is already registered.');
-			return false;
-		};
-		
-		
-		
-		t.switchTo = function(name)
-		{
-			if(!themes.hasOwnProperty(name)){
-				warn('Theme can\'t be switched because theme "' + name + '" is not registered.');
-				return false;
-			}
-			currentTheme = themes[name];
-			
-			// Update styles.
-			var styles = document.getElementsByTagName('style');
-			for(var i = 0, len = styles.length; i < len; i++){
-				if(styles[i].hasOwnProperty('ui')){
-					var ui = styles[i].ui;
-					styles[i].innerHTML = ui.generateCSS(ui.css);
-				}
-			}
-			
-			return true;
-		};
-		
-		
-		
-		/**
-		 * Returns style value.
-		 */
-		t.getStyle = function(name)
-		{
-			if(currentTheme === null){
-				warn('Theme is not selected');
-				return 'initial';
-			}
-			
-			// Get path and style name.
-			var path = name.split('.');
-			var style = path.pop();
-			
-			// If no path specified - return theme's style.
-			if(path.length === 0){
-				return currentTheme.getStyle(style);
-			}
-			
-			// Look for style in the nested components (themes).
-			var theme = currentTheme;
-			
-			do{
-				var n = path.shift();
-				if(!theme.components.hasOwnProperty(n)){
-					warn('Style with name "' + name + '" is absent in the current theme "' + currentTheme.name + '".');
-					return 'initial';
-				}
-				theme = theme.components[n];
-			}while(path.length > 0);
-			
-			return theme.getStyle(style);
-		};
-		
-		
-		/**
-		 * Returns name of the currently selected theme.
-		 */
-		t.getThemeName = function(){
-			if(currentTheme === null){
-				warn('Theme is not selected');
-				return null;
-			}
-			return currentTheme.name;
-		};
-		
-		
-		/**
-		 * Adds new theme section (nested theme).
-		 * Sections usage example: Theme('button.backgroundColor')
-		 */
-		t.addSection = function(name, params)
-		{
-			if(currentTheme === null){
-				warn('Theme is not selected');
-				return false;
-			}
-			
-			if(currentTheme.components.hasOwnProperty(name)){
-				warn('Component "' + name + '" already exists in the theme "' + currentTheme.name + '".');
-				return false;
-			}
-			
-			currentTheme.components[name] = new Theme(name, params);
-			return true;
-		};
-		
-		return t;
-	})();
-	
-	
-	_uibuilder.theme = _theme;
-	
+    /**
+     * @var {object} Object that describes CSS styles spell-checking regular expressions.
+     */
+    var styles = {
+        // Border
+        border : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+        borderLeft : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+        borderRight : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+        borderTop : /(none|initial|d\{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+        borderBottom : /(none|initial|\d{1,}px (solid|dashed|dotted) (#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+        borderRadius : /(none|0|initial|\d+(px|%|em|rem))/i,
+        borderWidth : /(0|initial|\d+(px|%|em|rem))/i,
+        borderColor : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
+        borderStyle : /(initial|solid|dotted|dashed)/i,
+        // Font
+        fontSize : /(initial|inherit|(\d+(px|em|rem|%)))/i,
+        fontStyle : /(initial|inherit|italic|normal)/i,
+        color : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
+        backgroundColor : /(initial|#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\))/i,
+        // Width
+        width : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+        maxWidth : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+        minWidth : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+        // Height
+        height : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+        minHeight : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+        maxHeight : /(initial|inherit|auto|(\d+(px|em|rem|%)))/i,
+        display : /(none|block|inline|inline-block|flex|table|table-cell|table-row)/i,
+        // Position
+        position : /(initial|static|fixed|relativa|absolute)/i,
+        top : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        left : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        bottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        right : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        position : /(initial|static|fixed|relativa|absolute)/i,
+        // Margin
+        margin : /(initial|0|(-?\d+(px|em|rem|%)(\s+-?\d+(px|em|rem|%)){0,3}))/i,
+        marginTop : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        marginLeft : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        marginBottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        marginRight : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        // Padding
+        padding : /(initial|0|(-?\d+(px|em|rem|%)(\s+-?\d+(px|em|rem|%)){0,3}))/i,
+        paddingTop : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        paddingLeft : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        paddingBottom : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        paddingRight : /(initial|0|(-?\d+(px|em|rem|%)))/i,
+        // Shadows
+        boxShadow : /(initial|none|(inset\s+)?-?\d+(px|em|rem|%)?\s+-?\d+(px|em|rem|%)?\s+\d+(px|em|rem|%)?\s+(\d+(px|em|rem|%)?\s+)?(#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+        textShadow : /(initial|none|(inset\s+)?-?\d+(px|em|rem|%)?\s+-?\d+(px|em|rem|%)?\s+\d+(px|em|rem|%)?\s+(\d+(px|em|rem|%)?\s+)?(#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
+        // Transform
 
 
-	function Theme(name, params)
-	{
-		this.name = name;
-		this.styles = {};
-		this.components = {};
-		
-		if(typeof params === 'object'){
-			for(var p in params){
-				if(typeof params[p] === 'object'){
-					this.components[p] = new Theme(p, params[p]);
-				}else{
-					this.styles[p] = params[p];
-				}
-			}
-		}
-	}
-	Theme.prototype = {constructor: Theme};
-	
-	Theme.prototype.getStyle = function(name)
-	{
-		if(!this.styles.hasOwnProperty(name)){
-			warn('Style with name "' + name + '" is absent in the current theme "' + _theme.getThemeName() + '".');
-			return 'initial';
-		}
-		return this.styles[name];
-	};
-	
+    };
 
-	
-	/**
-	 * Constructor of objects that used to store theme links.
-	 */
-	function StyleGetter(name)
-	{
-		this.name = name;
-	}
-	StyleGetter.prototype = {
-		constructor : StyleGetter,
-		getValue : function(){
-			return _theme.getStyle(this.name);
-		}
-	};
-	
-	
+
+    /**
+     * Exported function.
+     */
+    var _theme = (function()
+    {
+        var themes = {};
+        var currentTheme = null;
+
+
+        /**
+         * Function that used in the UI definition
+         * to retrieve style on CSS generating.
+         * Returns StyleGetter for the given property name.
+         *
+         * Example of usage:
+         *
+         * style : {
+         *     wrap : {
+         *         backgroundColor: Theme('colors.primary')
+         *     }
+         * }
+         *
+         * In example above the backgroundProperty gets an instance
+         * of the StyleGetter that indicates that when styles for
+         * this UI will be generated the value must be fetched from the
+         * theme dynamically.
+         *
+         * @param name
+         * @returns {StyleGetter}
+         */
+        function t(name)
+        {
+            return new StyleGetter(name);
+        }
+
+
+        /**
+         * Registers new theme.
+         * Exported method.
+         * Returns true if registration was successful or false if
+         * theme with this name already exists.
+         *
+         * Example:
+         *
+         * Theme.register('Default', {
+         *     colors : {
+         *         primary : '#ff0000',
+         *         secondary : '#366977'
+         *     },
+         *     // And so on...
+         * });
+         *
+         * @param name {string}
+         * @param {object} params
+         * @return {boolean}
+         */
+        t.register = function(name, params)
+        {
+            if(!themes.hasOwnProperty(name)){
+                themes[name] = new Theme(name, params);
+                return true;
+            }
+            warn('Theme with name "' + name + '" is already registered.');
+            return false;
+        };
+
+
+        /**
+         * Switches to the theme with given name.
+         * After theme switching all styles will be refreshed.
+         * @param name {string}
+         * @returns {boolean}
+         */
+        t.switchTo = function(name)
+        {
+            if(!themes.hasOwnProperty(name)){
+                warn('Theme can\'t be switched because theme "' + name + '" is not registered.');
+                return false;
+            }
+            currentTheme = themes[name];
+
+            // Update styles.
+            var styles = document.getElementsByTagName('style');
+            for(var i = 0, len = styles.length; i < len; i++){
+                if(styles[i].hasOwnProperty('ui')){
+                    var ui = styles[i].ui;
+                    styles[i].innerHTML = ui.generateCSS(ui.css);
+                }
+            }
+
+            return true;
+        };
+
+
+
+        /**
+         * Returns a value for the given style.
+         * The name can be set using dot-syntax for the nested items.
+         * If requested property is absent - 'initial' will be returned.
+         *
+         * Example:
+         * var color = Theme('buttons.danger.bgColor');
+         *
+         * @param {string} name
+         * @return {string|number}
+         */
+        t.getStyle = function(name)
+        {
+            if(currentTheme === null){
+                warn('Theme is not selected');
+                return 'initial';
+            }
+
+            // Get path and style name.
+            var path = name.split('.');
+            var style = path.pop();
+
+            // If no path specified - return theme's style.
+            if(path.length === 0){
+                return currentTheme.getStyle(style);
+            }
+
+            // Look for style in the nested components (themes).
+            var theme = currentTheme;
+
+            do{
+                var n = path.shift();
+                if(!theme.components.hasOwnProperty(n)){
+                    warn('Style with name "' + name + '" is absent in the current theme "' + currentTheme.name + '".');
+                    return 'initial';
+                }
+                theme = theme.components[n];
+            }while(path.length > 0);
+
+            return theme.getStyle(style);
+        };
+
+
+        /**
+         * Returns name of the currently selected theme.
+         * Can returns null if theme is not selected yet.
+         * @return {string|null}
+         */
+        t.getThemeName = function(){
+            if(currentTheme === null){
+                warn('Theme is not selected');
+                return null;
+            }
+            return currentTheme.name;
+        };
+
+
+        /**
+         * Adds new theme section (nested theme).
+         * Sections usage example: Theme('button.backgroundColor')
+         */
+        t.addSection = function(name, params)
+        {
+            if(currentTheme === null){
+                warn('Theme is not selected');
+                return false;
+            }
+
+            if(currentTheme.components.hasOwnProperty(name)){
+                warn('Component "' + name + '" already exists in the theme "' + currentTheme.name + '".');
+                return false;
+            }
+
+            currentTheme.components[name] = new Theme(name, params);
+            return true;
+        };
+
+        return t;
+    })();
+
+
+    _uibuilder.theme = _theme;
+
+
+    /**
+     * Theme constructor.
+     * Not available outside the library.
+     * @param name
+     * @param params
+     * @constructor
+     */
+    function Theme(name, params)
+    {
+        this.name = name;
+        this.styles = {};
+        this.components = {};
+
+        if(typeof params === 'object'){
+            for(var p in params){
+                if(params.hasOwnProperty(p)){
+                    if(typeof params[p] === 'object'){
+                        this.components[p] = new Theme(p, params[p]);
+                    }else{
+                        this.styles[p] = params[p];
+                    }
+                }
+            }
+        }
+    }
+    Theme.prototype = {constructor: Theme};
+
+    Theme.prototype.getStyle = function(name)
+    {
+        if(!this.styles.hasOwnProperty(name)){
+            warn('Style with name "' + name + '" is absent in the current theme "' + _theme.getThemeName() + '".');
+            return 'initial';
+        }
+        return this.styles[name];
+    };
+
+
+
+    /**
+     * Constructor of objects that used to store theme links.
+     */
+    function StyleGetter(name)
+    {
+        this.name = name;
+
+        // Property for colors modification.
+        this._darken = 0;
+        this._lighter = 0;
+        this._alpha = undefined;
+    }
+    StyleGetter.prototype = {
+        constructor : StyleGetter,
+        getValue : function(){
+            var value = _theme.getStyle(this.name);
+            if(value instanceof Color){
+                if(this._darker > 0) value.darken(this._darken);
+                if(this._lighten > 0) value.lighter(this._lighter);
+                value = value.toRgbaString(this._alpha);
+            }
+            return value;
+        },
+        alpha : function(value){
+            this._alpha = value;
+        },
+        darken : function(amount){
+            this._darken += amount;
+        },
+        lighter : function(amount){
+            this._lighten += amount;
+        }
+    };
+
+
 
     /**
      *           Routes
@@ -3562,15 +4205,281 @@ var UIBuilder = (function () {
      * This section will be done later.
      */
 
-    function Route(options) {
-        if (!options.hasOwnProperty('path')) {
-            throw new InvalidParamException('Route path is not specified.');
+    /**
+     * List of the available routes.
+     * @type {{}}
+     */
+    var routes = {};
+
+    /**
+     * Link to the current route.
+     * @type {Route|null}
+     */
+    var curRoute = null;
+
+    /**
+     * Link to the previous route.
+     * @type {Route|null}
+     */
+    var prevRoute = null;
+
+
+
+
+    /**
+     * Exported function.
+     * Returns route by name.
+     *
+     * Also provides few global events:
+     *
+     * @event apply
+     * The handlers accept 2 arguments: 'params' (object) and 'event' (UIEvent)
+     * If event is canceled - the applying will be terminated.
+     * Occurred just before route will be applied.
+     *
+     * @event leave
+     * The handlers accept 3 arguments:
+     * 'oldRoute' (string), 'newRoute' (string) and 'event' (UIEvent)
+     * Occurred just after route has been applied.
+     *
+     * @return {Route|null}
+     */
+    var _router = function(route){
+        if(!routes.hasOwnProperty(route)) return null;
+        return routes[route];
+    };
+
+    // Define service property that encapsulates hidden data.
+    Object.defineProperty(_router, '__', {
+        value: {},
+        configurable: false,
+        enumerable: false,
+        writeable: false
+    });
+    _router.__.events = {};
+    // Add global routing events support.
+    addEventsImplementation.call(_router);
+
+
+    // Export router.
+    _uibuilder.Route = _router;
+
+
+    /**
+     * Registers new route.
+     * @param route
+     * @returns {*}
+     */
+    _router.register = function(route){
+        routes[route] = new Route(route);
+        return routes[route];
+    };
+
+    /**
+     * Simply returns current route.
+     * @returns {Route|null}
+     */
+    _router.current = function(){
+        return curRoute;
+    };
+
+    /**
+     * Simply returns current route.
+     * @returns {Route|null}
+     */
+    _router.previous = function(){
+        return prevRoute;
+    };
+
+
+    /**
+     * Applies route with given name if exists.
+     * @param url {string}
+     * @param params {object}
+     * @return {boolean}
+     */
+    _router.apply = function(url, params){
+        // Parse url
+        var res = _url.parse(url, params);
+        var route = _router(res.route);
+        if(route !== null){
+            route.apply(params);
+            return true;
         }
+        return false;
+    };
 
-        this.path = options.hasOwnProperty('path') ? options.path : null;
 
+    /**
+     * Route that provides events for implementing routing logic.
+     * @param route
+     * @constructor
+     */
+    function Route(route) {
+        this.route = route;
+
+        // Define service property that encapsulates hidden data.
+        Object.defineProperty(this, '__', {
+            value: {},
+            configurable: false,
+            enumerable: false,
+            writeable: false
+        });
+
+        this.__.events = {};
     }
 
+    Route.prototype = {
+        constructor : Route,
+
+        /**
+         * Applies route with given parameters.
+         * Returns true if 'apply' event was triggered on the route.
+         * If 'apply' event was canceled globally - false will be returned.
+         * @return {boolean}
+         */
+        apply : function(params){
+            // Trigger 'apply' event.
+            var event = new UIEvent('apply');
+
+            // Trigger globally and if user calls preventDefault()
+            // method - stop execution.
+            _router.triggerEvent('apply', params, event);
+            if(event.canceled) return false;
+
+            // Trigger apply event on the route.
+            this.triggerEvent('apply', params, event);
+            history.pushState(params, '', ('/' + this.route).replace('//', ''));
+
+            // Store old route.
+            prevRoute = curRoute;
+
+            // Set new current route.
+            curRoute = this;
+
+            // Trigger globally and if user calls preventDefault()
+            // method - stop execution.
+            if(prevRoute instanceof Route){
+                // Trigger 'leave' event.
+                event = new UIEvent('leave');
+
+                _router.triggerEvent('leave', prevRoute.route, curRoute.route, event);
+                if(event.canceled) return true;
+
+                prevRoute.triggerEvent('leave', prevRoute.route, curRoute.route, event);
+            }
+            return true;
+        },
+
+        runParentRoute : function(params){
+            var arr = this.route.split('/');
+            if(arr.length < 2){
+                return false;
+            }
+            arr.pop();
+            var parentRoute = arr.join('/');
+            var route = _router(parentRoute);
+
+            if(route !== null){
+                var event = new UIEvent('apply');
+                route.triggerEvent('apply', params, event);
+            }
+            return false;
+        }
+    };
+
+    // Add events support for the Route.
+    addEventsImplementation.call(Route.prototype);
+
+    // Create default route.
+    curRoute = _router.register('/');
+
+
+
+    /**
+     *           URL
+     * ___________________________
+     * ---------------------------
+     *
+     * Url is a function that creates url depending on the given route.
+     * In other words it refines given url by adding/changing some parts of it.
+     * The manipulations with url will be done by the functions from 'urlRefiners' object.
+     * It can be changed using URL.setRefiner(function(){...});
+     */
+
+    /**
+     * List of the registered refiners.
+     * Each refiner accepts one argument - url (string)
+     * and returns another url (string) after some manipulations (adding language for example).
+     * All refiners will be called one by one passing the result of previous as argument to the next one.
+     * @type {{}}
+     */
+    var urlRefiners = {};
+
+    /**
+     * List of registered parsers.
+     * Each parser accepts 2 arguments:
+     * - url {string} Urt to be parsed.
+     * - params {object} Object in which url parameters can be added.
+     * @type {{}}
+     */
+    var urlParsers = {};
+
+
+    /**
+     * Generates url using refining function.
+     * @param route {string}
+     * @param params {object}
+     * @private
+     */
+    var _url = function(route, params){
+        for(var p in urlRefiners){
+            route = urlRefiners[p](route, params);
+        }
+        return route;
+    };
+    _uibuilder.Url = _url;
+
+
+    /**
+     * Registers refiner with the given name.
+     * @param name {string}
+     * @param refiner {function}
+     */
+    _url.setRefiner = function(name, refiner){
+        if(typeof refiner === 'function'){
+            urlRefiners[name] = refiner;
+        }
+    };
+
+
+    /**
+     * Registers parser with the given name.
+     * @param name {string}
+     * @param parser {function}
+     */
+    _url.setParser = function(name, parser){
+        if(typeof parser === 'function'){
+            urlParsers[name] = parser;
+        }
+    };
+
+
+    /**
+     * Parses url into route and parameters.
+     * @param url {string}
+     * @param params {object|undefined}
+     * @returns {{route: *, params: *}}
+     */
+    _url.parse = function(url, params){
+        if(typeof params !== 'object') params = {};
+        for(var p in urlParsers){
+            var res = urlParsers[p](url, params);
+            url = res.url;
+            params = res.params;
+        }
+        return {route : url, params : params};
+    };
 
     return _uibuilder;
 
@@ -3585,4 +4494,6 @@ var DataAjax = UI.UIDataAjax;
 var DataWS = UI.UIDataWS;
 var WS = UI.WS;
 var Route = UI.Route;
+var Url = UI.Url;
 var Animation = UI.Animation;
+var Color = UI.Color;
