@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>UIBuilder | Animation test</title>
+		<script src="../../dist/ui-builder.js"></script>
+		<script src="popover.ui.js"></script>
+		<style>
+			#container{
+				width: 140px;
+				height: 28px;
+				padding: 10px;
+				margin: 10px;
+				position: relative;
+				border: 1px solid #999;
+			}
+			#container:hover{
+				border: 1px solid #333;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container"></div>
+		<script>
+				var test_1 = UI('Popover').renderTo('#container');
+			</script>
+	</body>
+<html/>

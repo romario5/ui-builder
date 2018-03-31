@@ -52,8 +52,9 @@ UIInstance.prototype.remove = function () {
 
 
 	for (var p in scheme) {
-		if (this[p].__.node.parentNode !== null)
+		if (scheme.hasOwnProperty(p) && this[p].__.node.parentNode !== null){
 			this[p].__.node.parentNode.removeChild(this[p].__.node);
+        }
 	}
 
 	if (parent instanceof UIElement !== true) return;
@@ -112,6 +113,8 @@ UIInstance.prototype.load = function (data, replace, atStart) {
 		try {
 			data.fetch(function (replace, atStart, response) {
 				this.load(response, replace, atStart);
+                this.triggerEvent('afterload', data);
+                this.__.ui.triggerEvent('afterload', this, data);
 			}.bind(this, replace, atStart));
 			return this;
 		} catch (e) {
@@ -124,13 +127,21 @@ UIInstance.prototype.load = function (data, replace, atStart) {
 	var event = new UIEvent('load');
 	event.target = this.__.ui;
 	this.__.ui.triggerEvent('load', this, data, event);
-	if (event.canceled) return this;
+	if (event.canceled){
+        this.triggerEvent('afterload', data);
+        this.__.ui.triggerEvent('afterload', this, data);
+	    return this;
+    }
 
 	// Trigger event on the instance.
 	event = new UIEvent('load');
 	event.target = this;
 	this.triggerEvent('load', data, event);
-	if (event.canceled) return this;
+	if (event.canceled){
+        this.triggerEvent('afterload', data);
+        this.__.ui.triggerEvent('afterload', this, data);
+	    return this;
+    }
 
 
 	if (typeof data !== 'object') {
@@ -142,6 +153,8 @@ UIInstance.prototype.load = function (data, replace, atStart) {
 
 		if (root !== null) {
 			root.load(data, replace, atStart);
+            this.triggerEvent('afterload', data);
+            this.__.ui.triggerEvent('afterload', this, data);
 			return this;
 		}
 	}
@@ -150,6 +163,8 @@ UIInstance.prototype.load = function (data, replace, atStart) {
 	if (Array.isArray(data)) {
 		if (root !== null) {
 			root.load(data, replace, atStart);
+            this.triggerEvent('afterload', data);
+            this.__.ui.triggerEvent('afterload', this, data);
 			return this;
 		}
 	}
@@ -199,7 +214,8 @@ UIInstance.prototype.load = function (data, replace, atStart) {
 			}
 		}
 	}
-	this.triggerEvent('afterload');
+	this.triggerEvent('afterload', data);
+	this.__.ui.triggerEvent('afterload', this, data);
 	return this;
 };
 

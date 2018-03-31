@@ -62,6 +62,9 @@ function UIElement(params){
 	this.__.fx = null;
 
 	// Set data collector.
+	// Not used at the moment.
+	// Desired behavior it's to link data provider with element to
+	// update data automatically.
 	this.__.data = params.data === undefined ? null : params.data;
 
 	// Children is an array for the instances of child UI or inclusions (defined in the scheme as '|item' for example).
@@ -74,20 +77,23 @@ function UIElement(params){
 	var p;
 	// Attach attributes.
 	for (p in params.attributes) {
-		this.__.node.setAttribute(p, params.attributes[p]);
+	    if(params.attributes.hasOwnProperty(p)){
+            this.__.node.setAttribute(p, params.attributes[p]);
+        }
 	}
 
 	// Set properties.
 	for (p in params.properties) {
+	    if(params.properties.hasOwnProperty(p)){
+            // Use prototype method if available.
+            if (UIElement.prototype.hasOwnProperty(p) && typeof UIElement.prototype[p] === 'function') {
+                UIElement.prototype[p].call(this, params.properties[p]);
 
-		// Use prototype method if available.
-		if (UIElement.prototype.hasOwnProperty(p) && typeof UIElement.prototype[p] === 'function') {
-			UIElement.prototype[p].call(this, params.properties[p]);
-
-			// Otherwise set node properties directly.
-		} else {
-			this.__.node[p] = params.properties[p];
-		}
+                // Otherwise set node properties directly.
+            } else {
+                this.__.node[p] = params.properties[p];
+            }
+        }
 	}
 
 	// set class and id
@@ -349,9 +355,9 @@ UIElement.prototype.removeChildren = function () {
  * Removes UIElement instance from the parent.
  */
 UIElement.prototype.remove = function () {
-	delete this.__.node.uiinstance[this.name];
 	if (this.__.node.parentNode === null) return;
-	this.__.node.parentNode.removeChild(this.__.node);
+    this.__.node.parentNode.removeChild(this.__.node);
+    delete this.__.node.uiinstance[this.__.name];
 };
 
 
@@ -1165,3 +1171,35 @@ function compactData(data) {
 		}
 	}
 }
+
+
+function cloneObject(src, dst){
+    for(var p in src){
+        if(src.hasOwnProperty(p)){
+            if(Array.isArray(src[p])){
+                dst[p] = src[p].slice(0);
+            }else if(typeof src[p] === 'object'){
+                dst[p] = {};
+                cloneObject(src[p], dst[p]);
+            }else{
+                dst[p] = src[p];
+            }
+        }
+    }
+}
+
+/**
+ * Clones UIElement.
+ * @returns {UIElement}
+ */
+UIElement.prototype.clone = function()
+{
+      var newEl = new UIElement({});
+      cloneObject(this, newEl);
+      cloneObject(this.__, newEl.__);
+      var oldNode = this.node();
+      var newNode = oldNode.cloneNode(true);
+      newNode.uielement = newEl;
+      newEl.__.node = newNode;
+      return newEl;
+};

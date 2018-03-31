@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>UIBuilder | Animation test</title>
+		<script src="../../dist/ui-builder.js"></script>
+		<script src="calendar.ui.js"></script>
+		<script src="calendar-label.ui.js"></script>
+		<script src="calendar-day.ui.js"></script>
+		<script src="calendar-switcher.ui.js"></script>
+		<script src="date-picker.ui.js"></script>
+	</head>
+	<body>
+		<div id="popover" style="margin: 2rem"></div>
+		<script>
+			UI('Date picker').renderTo('#popover', {
+				selectedDate: '2018-03-05',
+				weekStartsFrom: 'monday',
+				name : 'jora'
+			});
+		</script>
+	</body>
+<html/>

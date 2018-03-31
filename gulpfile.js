@@ -7,11 +7,12 @@ gulp.task('build-nc', builsdNoCompress);
 
 
 var files = [
-	'src/__wrap-start.js',
+	'src/__wrap-start',
 	
 	'src/core.js',
 	'src/helpers/*',
 	'src/CSRF.js',
+	'src/localization.js',
 	'src/exceptions.js',
 	'src/settings.js',
 	'src/ui.js',
@@ -23,9 +24,10 @@ var files = [
 	'src/theme.js',
 	'src/router.js',
 	'src/url.js',
-	'src/built-in/*',
-	
-	'src/__wrap-end.js'
+    'src/extension.js',
+    'src/built-in/*',
+
+	'src/__wrap-end'
 ];
 
 

@@ -9,7 +9,13 @@
  *
  * Example: addEventsImplementation.call(UIElement.prototype);
  */
-function addEventsImplementation() {
+function addEventsImplementation()
+{
+	if(!this.hasOwnProperty('__')){
+        this.__ = {events : {}};
+	}
+
+
 	/**
 	 * Adds event listener for the event with name [[eventName]].
 	 * @param {string} eventName

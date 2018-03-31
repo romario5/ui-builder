@@ -89,17 +89,23 @@ function InvalidParamException(message) {
 	Exception.call(this, message);
 	this.name = 'Invalid parameter.';
 }
-
 InvalidParamException.prototype = Exception.prototype;
 
 
 // Invalid options on UI registration.
 function UIRegistrationException(message) {
 	Exception.call(this, message);
-	this.name = 'UI Registration.';
+	this.name = 'UI registration.';
 }
-
 UIRegistrationException.prototype = Exception.prototype;
+
+
+// Invalid options on UI registration.
+function ExtensionRegistrationException(message) {
+	Exception.call(this, message);
+	this.name = 'Extension registration.';
+}
+ExtensionRegistrationException.prototype = Exception.prototype;
 
 
 // Exception about invalid scheme structure.

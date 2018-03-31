@@ -26,7 +26,8 @@
  * @param {object} params - Parameters that contains necessary data for fetching.
  * @constructor
  */
-function UIData(params) {
+function UIData(params)
+{
 	// Define service property that encapsulates hidden data.
 	Object.defineProperty(this, '__', {
 		value: {},
@@ -37,13 +38,43 @@ function UIData(params) {
 
 	this.__.events = {};
 
+    /**
+	 * Flag if last fetch was completed with error.
+     * @type {boolean}
+     */
 	this.hasError = false;
-	this.ready = true;         // Flag if UIData is ready to fetching.
-	this.cache = null;         // Data got by last fetch.
-	this.cacheLifetime = null; // Lifetime of cache. null - not used. 0 - until page refresh.
+
+    /**
+	 * Flag if UIData is ready to fetching.
+     * @type {boolean}
+     */
+	this.ready = true;
+
+    /**
+	 * Data got by last fetch.
+     * @type {null|*}
+     */
+	this.cache = null;
+
+    /**
+	 * Lifetime of cache. null - not used. Infinity - until page refresh.
+	 * @type null|number|Infinity
+     */
+	this.cacheLifetime = null;
+
+    /**
+	 * If true allows to fetch data if previous
+     * fetch process is not completed yet.
+     * Set is to false to prevent unnecessary fetching calls.
+	 * @type {boolean}
+     */
 	this.allowMultiple = true;
 
-	// Set the collector.
+    /**
+	 * Set the collector.
+	 * Data collector is a function that provides data by the given parameters.
+	 * If not set - defaultCollector will be used.
+     */
 	if (params.hasOwnProperty('collector')) {
 		if (typeof params.collector !== 'function')
 			throw new UIDataException('Collector must be a function but ' + typeof params.collector + ' given.');
@@ -52,14 +83,38 @@ function UIData(params) {
 		this.collector = defaultCollector;
 	}
 
-	if (params.hasOwnProperty('onfetch') && typeof params.onfetch === 'function') {
-		this.on('fetch', params.onfetch);
+	// Add events handlers if any given.
+	var events = ['fetch', 'complete', 'error', 'progress'];
+	for(var i = 0; i < events.length; i++){
+        if (params.hasOwnProperty('on' + events[i]) && typeof params['on' + events[i]] === 'function') {
+            this.on(events[i], params['on' + events[i]]);
+        }
 	}
 
+    /**
+	 * Time in which data should be loaded.
+	 * If waiting time is elapsed - an error event will be triggered
+	 * and [hasError] property will be set to true.
+	 * @type {number}
+     */
 	this.waitingLimit = params.hasOwnProperty('waitingTime') ? parseInt(params.waitingTime) : 3000;
+
+    /**
+	 * Last data fetching time.
+     * @type {number}
+     */
 	this.timeElapsed = 0;
 
+    /**
+	 * UNIX timestamp which indicates last fetching start time.
+     * @type {number}
+     */
 	this.lastFetchTime = Date.now();
+
+    /**
+	 * Data to be used on fetching.
+	 * For example it can be parameters to be sent via AJAX.
+     */
 	if(params.hasOwnProperty('data')){
 		this._parameters = params.data;
 	}else{
@@ -67,7 +122,7 @@ function UIData(params) {
 	}
 }
 
-UIData.prototype = {};
+UIData.prototype = {constructor: UIData};
 
 
 /**
@@ -91,17 +146,20 @@ UIData.prototype.params = UIData.prototype.parameters;
  */
 UIData.prototype.fetch = function (callback) {
 	this.hasError = false;
-	this.triggerEvent('fetch');
+    if ((this.allowMultiple || this.ready) && typeof this.collector === 'function') {
+        this.triggerEvent('fetch');
+        this.ready = false;
+        return this.collector(callback);
+    }
+
 	if (typeof params === 'object') this.params = params;
-	if ((this.allowMultiple || this.ready) && typeof this.collector === 'function') {
-		this.ready = false;
-		return this.collector(callback);
-	}
+
 	return false;
 };
 
 
 UIData.prototype.send = UIData.prototype.fetch;
+
 
 
 // Add events to the UIData's instances.

@@ -85,6 +85,33 @@ UI.prototype = {constructor: UI};
 
 
 /**
+ * Checks parameters that given on the UI registration.
+ */
+function checkUIParameters(data)
+{
+    if (!data.hasOwnProperty('name'))
+        throw new UIRegistrationException('Name of a new UI is not defined.');
+
+    if (typeof data.name !== 'string')
+        throw new UIRegistrationException('Name of a new UI is ' + (typeof data.name) + '. String required.');
+
+    if (uiList.hasOwnProperty(data.name))
+        throw new UIRegistrationException('UI with name "' + data.name + '" already registered.');
+
+    if (!data.hasOwnProperty('scheme'))
+        throw new UIRegistrationException('Scheme for a new UI "' + data.name + '" is absent.');
+
+    if (typeof data.scheme !== 'object')
+        throw new UIRegistrationException('Scheme for a new UI "' + data.name + '" is ' + (typeof data.scheme) + '. Object required.');
+
+    if (!data.hasOwnProperty('rules')) data.rules = {};
+
+    if (typeof data.rules !== 'object')
+        throw new UIRegistrationException('Rules for a new UI "' + data.name + '" is ' + (typeof data.rules) + '. Object required.');
+}
+
+
+/**
  * Adds event handler for the UI.
  * There are few events available:
  * - render

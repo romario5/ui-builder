@@ -100,6 +100,12 @@ var _theme = (function()
 	}
 
 
+    /**
+     * Add events support for the exported function.
+     */
+	addEventsImplementation.call(t);
+
+
 	/**
 	 * Registers new theme.
 	 * Exported method.
@@ -124,6 +130,7 @@ var _theme = (function()
 	{
 		if(!themes.hasOwnProperty(name)){
 			themes[name] = new Theme(name, params);
+			t.triggerEvent('register');
 			return true;
 		}
 		warn('Theme with name "' + name + '" is already registered.');
@@ -153,6 +160,9 @@ var _theme = (function()
 				styles[i].innerHTML = ui.generateCSS(ui.css);
 			}
 		}
+
+		this.triggerEvent('switch');
+
 		return true;
 	};
 

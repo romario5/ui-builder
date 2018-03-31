@@ -3,8 +3,9 @@
 })();
 
 
-// Comment line below if you don't want to use pseudonym.
+// Comment lines below if you don't want to use pseudonyms.
 var UI = UIBuilder;
+var Extension = UI.Extension;
 var Theme = UI.theme;
 var Data = UI.UIData;
 var DataAjax = UI.UIDataAjax;
@@ -17,3 +18,4 @@ var Color = UI.Color;
 var Point = UI.Point;
 var Rect = UI.Rect;
 var Vector = UI.Vector;
+var L10n = UI.L10n;
