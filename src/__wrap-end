@@ -19,3 +19,4 @@ var Point = UI.Point;
 var Rect = UI.Rect;
 var Vector = UI.Vector;
 var L10n = UI.L10n;
+var Identity = UI.Identity;

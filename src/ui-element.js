@@ -53,6 +53,8 @@ function UIElement(params){
 	this.__.isDragging = false;
 	this.__.dragWithinParent = false;
 	this.__.dragBoundaries = false;
+	this.__.localization = null;
+	this.__.translation = null;
 
 
 	// Tabs behaviour properties.
@@ -114,6 +116,13 @@ _uibuilder.isElement = function(subject){
 
 UIElement.prototype = {constructor: UIElement};
 
+
+
+UIElement.prototype.applyLocalization = function (localization, translation) {
+	this.__.node.setAttribute('localization', localization);
+	this.__.node.T = translation;
+	return this;
+};
 
 /**
  * Checks if element has child UI.
@@ -390,9 +399,8 @@ UIElement.prototype.add = function (ui, atStart, params) {
 	if (atStart === undefined || atStart === null) atStart = false;
 
 	if (typeof ui === 'string') {
-		if (uiList.hasOwnProperty(ui)) {
-			ui = uiList[ui];
-		} else {
+	    ui = _uibuilder(ui);
+		if (ui === null) {
 			throw new InvalidParamException('UI with name ' + ui + ' is absent.');
 		}
 	}
@@ -417,8 +425,8 @@ UIElement.prototype.html = function (html) {
 	return this;
 };
 UIElement.prototype.text = function (text) {
-	if (text === undefined) return this.__.node.innerText;
-	this.__.node.innerText = text;
+	if (text === undefined) return this.__.node.textContent;
+	this.__.node.textContent = text;
 	return this;
 };
 UIElement.prototype.attr = function (name, value) {
@@ -576,7 +584,7 @@ UIElement.prototype.slideToggle = function (duration, callback) {
 	if (typeof duration !== 'number') duration = 250;
 
 	// Exit if element is already collapsed.
-	if (this.outerHeight() === 0 || this.isHidden() || this.__.fx === 'slideUp') {
+	if (this.node().clientHeight === 0 || this.isHidden() || this.__.fx === 'slideUp') {
 		this.slideDown(duration, callback);
 	} else {
 		this.slideUp(duration, callback);
@@ -954,8 +962,9 @@ UIElement.prototype.load = function (data, replace, atStart) {
 
 					// ... otherwise render new UI.
 				} else {
-					if (uiList.hasOwnProperty(p)) {
-						uiList[p].renderTo(this).load(data[p], replace, atStart);
+					var ui = _uibuilder(p);
+					if (ui !== null) {
+						ui.renderTo(this).load(data[p], replace, atStart);
 					}
 				}
 			}
@@ -983,12 +992,16 @@ UIElement.prototype.resetValues = function (compact) {
 
 /**
  * Gathers data of the UIElement.
- * @param {boolean} compact
+ * @param {boolean} [compact]
  * @returns {{}}
  */
 UIElement.prototype.gatherData = function (compact) {
 	if (compact === undefined) compact = true;
 	var data = {};
+
+    var event = new Event('gather');
+    this.triggerEvent('gather', data, event);
+
 	gatherElementData(this, data, data, null, true);
 	if (compact) compactData(data);
 	return data;
@@ -1010,6 +1023,9 @@ function gatherElementData(target, data, curData, propName, gatherChildNodes) {
 
 	if (target.hasAttr('name')) {
 		name = target.attr('name');
+
+		var event = new Event('gather');
+		target.triggerEvent('gather', data, event);
 
 		// Get value if element is <input/> or <select/>.
 		if (['INPUT', 'TEXTAREA', 'SELECT'].indexOf(target.tagName()) >= 0) {
@@ -1061,6 +1077,10 @@ function gatherElementData(target, data, curData, propName, gatherChildNodes) {
 		children = target.children();
 		for (var i = 0; i < children.length; i++) {
 			if (children[i] instanceof UIInstance) {
+                var root = children[i].getRootElement();
+                if(root.hasAttr('name')){
+                    name = root.attr('name');
+                }
 				var tmp = {};
 				gatherInstanceData(children[i], tmp, null, curData, propName);
 				if (name !== null) {
@@ -1173,14 +1193,14 @@ function compactData(data) {
 }
 
 
-function cloneObject(src, dst){
+function cloneObjectTo(src, dst){
     for(var p in src){
         if(src.hasOwnProperty(p)){
             if(Array.isArray(src[p])){
                 dst[p] = src[p].slice(0);
             }else if(typeof src[p] === 'object'){
                 dst[p] = {};
-                cloneObject(src[p], dst[p]);
+                cloneObjectTo(src[p], dst[p]);
             }else{
                 dst[p] = src[p];
             }
@@ -1195,8 +1215,8 @@ function cloneObject(src, dst){
 UIElement.prototype.clone = function()
 {
       var newEl = new UIElement({});
-      cloneObject(this, newEl);
-      cloneObject(this.__, newEl.__);
+      cloneObjectTo(this, newEl);
+      cloneObjectTo(this.__, newEl.__);
       var oldNode = this.node();
       var newNode = oldNode.cloneNode(true);
       newNode.uielement = newEl;

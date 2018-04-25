@@ -70,15 +70,29 @@ _url.setParser = function(name, parser){
 /**
  * Parses url into route and parameters.
  * @param {string} url
- * @param {object} [params]
  * @returns {{route: *, params: *}}
  */
-_url.parse = function(url, params){
-	if(typeof params !== 'object') params = {};
-	for(var p in urlParsers){
-		var res = urlParsers[p](url, params);
-		url = res.url;
-		params = res.params;
-	}
-	return {route : url, params : params};
+_url.parse = function(url)
+{
+    var matches = url.match(/\?(&?[\w\d-_%]+=[\w\d-_%]*)+/gi);
+
+    var query = matches !== null && matches.length > 0 ? matches[0] : '';
+    url = url.replace(query, '').replace(window.location.origin, '');
+    if(query[0] === '?') query = query.slice(1);
+
+    var params = {};
+    var queryParameters = query.split('&');
+    for(var i = 0; i < queryParameters.length; i++){
+        var v = queryParameters[i].split('=');
+        if(v.length > 1){
+            params[v[0]] = v[1];
+        }
+    }
+
+    for(var p in urlParsers){
+        var res = urlParsers[p](url, params);
+        url = res.url;
+        params = res.params;
+    }
+    return {route : url, params : params};
 };

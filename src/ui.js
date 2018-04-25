@@ -5,6 +5,7 @@
  
  * UI constructor.
  * @param options (object)
+ * @method renderTo(container, [atStart], params)
  */
 function UI(options) {
 	if (typeof options !== 'object') options = {};
@@ -16,6 +17,8 @@ function UI(options) {
 	this.prefix = options.hasOwnProperty('prefix') ? options.prefix : '';
 	this.name = options.hasOwnProperty('name') ? options.name : '';
 	this.css = options.hasOwnProperty('css') ? options.css : null;
+	this.localization = options.hasOwnProperty('localization') ? options.localization : null;
+	this.translations = options.hasOwnProperty('translations') ? options.translations : {};
 
 	// Define instance constructor to implement methods.
 	this.uiiConstructor = !options.hasOwnProperty('methods') ? UIInstance : (function(){
@@ -98,8 +101,7 @@ function checkUIParameters(data)
     if (uiList.hasOwnProperty(data.name))
         throw new UIRegistrationException('UI with name "' + data.name + '" already registered.');
 
-    if (!data.hasOwnProperty('scheme'))
-        throw new UIRegistrationException('Scheme for a new UI "' + data.name + '" is absent.');
+    if (!data.hasOwnProperty('scheme')) data.scheme = {};
 
     if (typeof data.scheme !== 'object')
         throw new UIRegistrationException('Scheme for a new UI "' + data.name + '" is ' + (typeof data.scheme) + '. Object required.');
@@ -145,8 +147,10 @@ function cloneSchemeLinear(scheme, target) {
 					children: null
 				};
 
-			} else {
-				throw new InvalidSchemeException('Value of the elemend must be string or object.');
+			}else if(scheme[p] === false){
+                delete scheme[p];
+            } else {
+				throw new InvalidSchemeException('Value of the element must be string or object.');
 			}
 		}
 	}
@@ -249,6 +253,7 @@ function parseParameters(str) {
  * @param atStart (boolean)
  */
 function buildScheme(instance, ui, scheme, target, atStart) {
+
 	// Set default atStart value if it's not specified.
 	if (typeof atStart !== 'boolean') atStart = false;
 
@@ -307,22 +312,42 @@ function buildScheme(instance, ui, scheme, target, atStart) {
 
 			// Render another UI if include is detected.
 			if (params.include !== null) {
-
-				if (uiList.hasOwnProperty(params.include)) {
-					for(var p in uiList[params.include].__.params){
+				var inclusionUI = _uibuilder(params.include);
+				if (inclusionUI !== null) {
+					for(var p in inclusionUI.__.params){
 						if(!params.parameters.hasOwnProperty(p)){
-							params.parameters[p] = uiList[params.include].__.params[p];
+							params.parameters[p] = inclusionUI.__.params[p];
 						}
 					}
-					element.__.inclusion = element.add(uiList[params.include], params.parameters);
+					element.__.inclusion = element.add(inclusionUI, params.parameters);
 				} else {
 					throw new RenderingException('Required for including UI "' + params.include + '" is not registered yet.');
 				}
-
 			}
+
+            if( instance.__.localization !== null
+                && instance.__.translations !== null
+                && instance.__.translations.hasOwnProperty(element.__.name)
+            ){
+			    if(element.__.inclusion === null){
+                    element.__.node.setAttribute('localization', instance.__.localization);
+                    element.__.node.T = instance.__.translations[element.__.name];
+                }else{
+                    element.__.inclusion.triggerEvent('localization', instance.__.localization, instance.__.translations[element.__.name]);
+                }
+            }
 
 			// Attach element into instance.
 			instance[elementName] = element;
+
+            if(ui.translations.hasOwnProperty(elementName)){
+                var t = L10n.getTranslations(ui.localization);
+                if(element.__.node.tagName === 'INPUT'){
+                    element.attr('placeholder', t(ui.translations[elementName]));
+                }else if(element.__.inclusion === null){
+                    element.text(t(ui.translations[elementName]))
+                }
+            }
 
 			// Set parent UIElement and define target node.
 			if (target instanceof UIElement) {
@@ -349,7 +374,7 @@ function buildScheme(instance, ui, scheme, target, atStart) {
 
 			// Add nested schemes.
 			if (typeof scheme[elementName] === 'object') {
-				for (var p in scheme[elementName]) {
+				for (p in scheme[elementName]) {
 					buildScheme(instance, ui, scheme[elementName], element);
 				}
 			}
@@ -384,9 +409,15 @@ UI.prototype.getRootElement = function ()
  **/
 UI.prototype.renderTo = function (container, atStart, params)
 {
-	// Lets allow users to modify rendering options during 'beforerender' event.
-	var options = {container : container, atStart : atStart, params : params};
-	this.triggerEvent('beforerender', options);
+	// Lets allow users to modify rendering options during 'beforeRender' event.
+	var options = {
+	    container : container,
+        atStart : atStart,
+        params : params,
+        localization : this.localization,
+        translations : Object.assign({}, this.translations)
+	};
+	this.triggerEvent('beforeRender', options);
 
 	// Apply changing.
 	container = options.container;
@@ -397,6 +428,8 @@ UI.prototype.renderTo = function (container, atStart, params)
 	var instance = new this.uiiConstructor(); // Create new UI instance.
 
 	instance.__.ui = this; // Set UI property.
+    instance.__.localization = options.localization;
+    instance.__.translations = options.translations;
 
 	// Set parameters if atStart flag is missing.
 	if (typeof atStart === 'object' && typeof params !== 'object') params = atStart;
@@ -452,6 +485,15 @@ UI.prototype.renderTo = function (container, atStart, params)
 
 
 /**
+ * Renders UI to the <body/>.
+ * @param params
+ */
+UI.prototype.render = function (params) {
+    return this.renderTo('body', params);
+};
+
+
+/**
  * Filters UI parameter:
  * - converts 'true' or 'false' to corresponding boolean value.
  * - converts 'null' to null value.
@@ -479,7 +521,7 @@ function filterUIParameterValue(value)
  * Generates CSS of the UI.
  * @return {string}
  */
-UI.prototype.generateCSS = function(data, parentSelector)
+UI.prototype.generateCSS = function(data, parentSelector, parentEl)
 {
 	if(parentSelector === undefined) parentSelector = '';
 	var res = [];
@@ -511,7 +553,7 @@ UI.prototype.generateCSS = function(data, parentSelector)
 				cssText += "}\n";
 				res.push(cssText);
 
-				// Otherwise generate nested styles in case it is media query, print or something else.
+			// Otherwise generate nested styles in case it is media query, print or something else.
 			}else if(typeof styles === 'object'){
 				cssText += parentSelector + elName + "{\n";
 				cssText += this.generateCSS(styles);
@@ -525,10 +567,9 @@ UI.prototype.generateCSS = function(data, parentSelector)
 		if(this.elements.hasOwnProperty(elName)){
 			params = parseParameters(this.elements[elName].rules);
 			selector = params.id !== null ? '#' + params.id : '.' + (params.class !== null ? params.class.split(' ').join('.') : makeClassName(elName));
-			selector = ' ' + selector;
+			selector = (this.elements.hasOwnProperty(parentEl) && this.elements[parentEl].children.hasOwnProperty(elName) ? ' > ' : ' ') + selector;
 		}else{
 			selector = makeClassName(elName);
-			//warn('Styles rendering issue. Style target "' + elName + '" is absent in the "' + this.name + '" UI.');
 		}
 
 		// Make root selector to encapsulate styles in the instance UI.
@@ -548,7 +589,11 @@ UI.prototype.generateCSS = function(data, parentSelector)
 		var index = res.length;
 		res.push('');
 
-		cssText += ((rootSelector + ' ' + parentSelector).trim() + selector).replace('  ', ' ').replace(' :', ':') + "{\n";
+		cssText += ((rootSelector + ' ' + parentSelector).trim() + selector)
+                .replace('  ', ' ')
+                .replace(' :', ':')
+                .replace('>:', ':') + "{\n"
+
 		for(var styleName in styles){
 			var style = styles[styleName];
 
@@ -565,7 +610,7 @@ UI.prototype.generateCSS = function(data, parentSelector)
 			}else if(typeof style === 'object'){
 				var obj = {};
 				obj[styleName] = style;
-				res.push(this.generateCSS(obj, parentSelector + selector));
+				res.push(this.generateCSS(obj, parentSelector + selector, elName));
 			}
 		}
 		cssText += "}\n";
@@ -588,13 +633,100 @@ UI.prototype.createStyles = function()
 	styleTag.innerHTML = this.generateCSS(this.css);
 
 	// Add comment if logging is enabled.
-	if (Settings.logging) {
-		var comment = document.createComment('--- ' + this.name + ' ---');
-		head.appendChild(comment);
-	}
+	// if (Settings.logging) {
+	// 	var comment = document.createComment('--- ' + this.name + ' ---');
+	// 	head.appendChild(comment);
+	// }
 
 	head.appendChild(styleTag);
 	this.cssLoaded = true;
 };
 
+
+
+
+function UIExtending(extendingUI, extendedUIName, options)
+{
+    this.extendingUI = extendingUI;
+    this.extendedUIName = extendedUIName;
+    this.options = options;
+}
+
+UIExtending.prototype = {
+    constructor: UIExtending,
+
+    extend : function () {
+        var extendedUI = _uibuilder(this.extendedUIName);
+        if(extendedUI === null){
+            throw new UIRegistrationException('UI "' + name + '" which be extended is not found.');
+        }
+
+        var extendingUI = this.extendingUI;
+        var options = this.options;
+
+        if(!options.hasOwnProperty('scheme')) options.scheme = {};
+        if(!options.hasOwnProperty('rules')) options.rules = {};
+        if(!options.hasOwnProperty('styles')) options.styles = {};
+        if(!options.hasOwnProperty('translations')) options.translations = {};
+        if(!options.hasOwnProperty('params')) options.params = {};
+
+        extendingUI.uiiConstructor = extendedUI.uiiConstructor;
+        extendingUI.elements = {};
+        extendingUI.scheme = extendObject(options.scheme, cloneObject(extendedUI.scheme));
+        extendingUI.rules = extendObject(options.rules, cloneObject(extendedUI.rules));
+        extendingUI.translations = extendObject(options.translations, cloneObject(extendedUI.translations));
+        extendingUI.css = extendObject(options.styles, cloneObject(extendedUI.css));
+        extendingUI.params = extendObject(options.params, cloneObject(extendedUI.params));
+
+        extendingUI.localization = options.hasOwnProperty('localization') ? options.localization : extendedUI.localization;
+
+        extendingUI.cssLoaded = false;
+
+        extendingUI.__.events = cloneObject(extendedUI.__.events);
+        extendingUI.__.styleNode = null;
+        extendingUI.__.data = options.hasOwnProperty('data') ? options.data : null;
+        extendingUI.__.url = null;
+
+        // Parameters to be used on rendering.
+        if(options.hasOwnProperty('parameters')){
+            extendingUI.__.params = extendObject(options.parameters, cloneObject(extendedUI.__.params));
+        }else if(options.hasOwnProperty('params')){
+            extendingUI.__.params = extendObject(options.params, cloneObject(extendedUI.__.params));
+        }
+
+        // Clone all elements from scheme to 'elements' object.
+        try {
+            cloneSchemeLinear(extendingUI.scheme, extendingUI.elements);
+        } catch (e) {
+            error(e);
+        }
+
+        for(var p in this.elements){
+            if(extendingUI.rules.hasOwnProperty(p) && extendingUI.elements[p].rules === ''){
+                extendingUI.elements[p].rules = extendingUI.rules[p];
+            }
+        }
+
+        for (var p in options) {
+            if (p.slice(0, 2) === 'on' && typeof options[p] === 'function') {
+                extendingUI.addEventListener(p.slice(2), options[p]);
+            }
+        }
+        return extendingUI;
+    }
+};
+
+
+
+/**
+ * Extends another UI.
+ * @param name
+ * @param options
+ */
+UI.prototype.extends = function (name, options)
+{
+    var extending = new UIExtending(this, name, options);
+    delete uiList[this.name];
+    uiExtendings[this.name] = extending;
+};
 

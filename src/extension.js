@@ -10,6 +10,7 @@
 function Extension(options)
 {
     this.name = ''; // Name of the extension.
+    this.__ = {events: {}};
 
     for (var p in options) {
         if(options.hasOwnProperty(p)){

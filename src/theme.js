@@ -58,9 +58,6 @@ var styles = {
 	// Shadows
 	boxShadow : /(initial|none|(inset\s+)?-?\d+(px|em|rem|%)?\s+-?\d+(px|em|rem|%)?\s+\d+(px|em|rem|%)?\s+(\d+(px|em|rem|%)?\s+)?(#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
 	textShadow : /(initial|none|(inset\s+)?-?\d+(px|em|rem|%)?\s+-?\d+(px|em|rem|%)?\s+\d+(px|em|rem|%)?\s+(\d+(px|em|rem|%)?\s+)?(#[a-fA-F\d]{3,6}|transparent|black|white|red|grey|blue|green|rgba\(\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*(,\s*\d?\.?\d{1,})?\)))/i,
-	// Transform
-
-
 };
 
 
@@ -176,13 +173,13 @@ var _theme = (function()
 	 * var color = Theme('buttons.danger.bgColor');
 	 *
 	 * @param {string} name
-	 * @return {string|number}
+	 * @return {string|number|null|Color}
 	 */
 	t.getStyle = function(name)
 	{
 		if(currentTheme === null){
 			warn('Theme is not selected');
-			return 'initial';
+			return null;
 		}
 
 		// Get path and style name.
@@ -201,7 +198,7 @@ var _theme = (function()
 			var n = path.shift();
 			if(!theme.components.hasOwnProperty(n)){
 				warn('Style with name "' + name + '" is absent in the current theme "' + currentTheme.name + '".');
-				return 'initial';
+				return null;
 			}
 			theme = theme.components[n];
 		}while(path.length > 0);
@@ -244,6 +241,9 @@ var _theme = (function()
 		return true;
 	};
 
+
+
+
 	return t;
 })();
 
@@ -282,7 +282,7 @@ Theme.prototype.getStyle = function(name)
 {
 	if(!this.styles.hasOwnProperty(name)){
 		warn('Style with name "' + name + '" is absent in the current theme "' + _theme.getThemeName() + '".');
-		return 'initial';
+		return null;
 	}
 	return this.styles[name];
 };
@@ -297,6 +297,7 @@ function StyleGetter(name)
 	this._darker = 0;
 	this._lighter = 0;
 	this._alpha = undefined;
+	this._default = 'initial';
 }
 
 /**
@@ -314,6 +315,9 @@ StyleGetter.prototype = {
 			if(this._lighter > 0) c.lighter(this._lighter);
 			value = c.toRgbaString(this._alpha);
 		}
+		if(value === null){
+		    return this._default;
+        }
 		return value;
 	},
 	alpha : function(value){
@@ -327,5 +331,9 @@ StyleGetter.prototype = {
 	lighter : function(amount){
 		this._lighter += amount;
 		return this;
-	}
+	},
+    default : function(value){
+        this._default = value;
+        return this;
+    }
 };

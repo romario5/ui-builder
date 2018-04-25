@@ -10,16 +10,9 @@
  */
 
 
+/**
+ * @var function
+ * @return UI
+ */
 var UIBuilder = (function () {
-
-
-    // Add reset styles.
-    (function(){
-        var head  = document.getElementsByTagName('head')[0];
-        var styleTag  = document.createElement('style');
-        styleTag.innerHTML = '* {margin : 0; padding : 0; box-sizing: border-box;}';
-        var comment = document.createComment('--- RESET ---');
-        head.appendChild(comment);
-        head.appendChild(styleTag);
-    })();
 

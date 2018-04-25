@@ -14,7 +14,7 @@ implements jQuery syntax.
 
 ### Example:
 Lets create classic tasks list: input field and adding button. User can input text in the field and add task by clicking button.
-#### The tasts list interface:
+#### The tasks list interface:
 
 ```js
 UI.register({
@@ -141,9 +141,14 @@ var TasksList = UI('Tasks list').renderTo('#container', {width : 600, height : 4
 Also this lib can a lot:
 - Gathering forms (and not only forms)
 - Animating functions
-- Data providers (basic generator, ajax data fetcher)
+- Extensions support
+- UI extending functionality
+- Data providers (basic generator, ajax, WebSocket)
 - Loading data to the elements or whole instance structures from given data or data providers.
-- Common UI solutions such as tabs, spinner, dropdowns.
+- Common UI solutions such as tabs, spinner, dropdowns, dragging.
+- Themes (with CSS regeneration on the fly)
 - Validation (will be implemented later)
+ 
+
 
 More documentation will be ready soon. Enjoy :)

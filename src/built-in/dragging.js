@@ -110,8 +110,15 @@ function dragStartHandler(inst, e)
 
 	// Store parent node initial position.
 	box = this.__.node.parentNode.getBoundingClientRect();
-	initialParentTop = box.top;
-	initialParentLeft = box.left;
+
+	// Get border width of the top and left sides.
+    var style = getComputedStyle(this.node().parentNode);
+    var borderLeft = parseInt((style.borderLeftWidth + '').replace('px', ''));
+    var borderTop = parseInt((style.borderTopWidth + '').replace('px', ''));
+
+    // Exclude border width from position delta by adding border to the parent coordinates.
+    initialParentTop = box.top + borderTop;
+    initialParentLeft = box.left + borderLeft;
 
 	// Set element as dragged.
 	dragged = this;
@@ -141,24 +148,26 @@ function draggingHandler(e)
 	var newLeft = iLeft + deltaX;
 	var newTop = iTop + deltaY;
 
-	// Prevent from dragging outside along X.
-	if(newLeft < 0) newLeft = 0;
-	if(withinParent){
-		var myW = dragged.__.node.clientWidth;
-		var parentW = dragged.__.node.parentNode.clientWidth;
-		if(newLeft > parentW - myW){
-			newLeft = parentW - myW;
-		}
-	}
+	if(dragged.__.dragBoundaries){
+        // Prevent from dragging outside along X.
+        if(newLeft < 0) newLeft = 0;
+        if(withinParent){
+            var myW = dragged.__.node.clientWidth;
+            var parentW = dragged.__.node.parentNode.clientWidth;
+            if(newLeft > parentW - myW){
+                newLeft = parentW - myW;
+            }
+        }
 
-	// Prevent from dragging outside along Y.
-	if(newTop < 0) newTop = 0;
-	if(withinParent){
-		var myH = dragged.__.node.clientWidth;
-		var parentH = dragged.__.node.parentNode.clientWidth;
-		if(newTop > parentH - myH){
-			newTop = parentH - myH;
-		}
+        // Prevent from dragging outside along Y.
+        if(newTop < 0) newTop = 0;
+        if(withinParent){
+            var myH = dragged.__.node.clientHeight;
+            var parentH = dragged.__.node.parentNode.clientHeight;
+            if(newTop > parentH - myH){
+                newTop = parentH - myH;
+            }
+        }
 	}
 
 	var event = new UIEvent('drag');

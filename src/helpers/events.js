@@ -23,8 +23,9 @@ function addEventsImplementation()
 	 * @throw EventException
 	 */
 	this.addEventListener = function (eventName, handler) {
+		eventName = eventName.toLowerCase();
 		if (typeof handler !== 'function') throw new EventException('Type of handler is not a function');
-		if (!this.__.events.hasOwnProperty(eventName)) this.__.events[eventName] = [];
+		if (!Array.isArray(this.__.events[eventName])) this.__.events[eventName] = [];
 		if (this.__.events[eventName].indexOf(handler) >= 0) return;
 		this.__.events[eventName].push(handler);
 		return this;
@@ -40,14 +41,20 @@ function addEventsImplementation()
 	 * @param {function} handler
 	 * @throw EventException
 	 */
-	this.removeEventListener = function (eventName, handler) {
-		if (typeof handler !== 'function') throw new EventException('Type of handler is not a function');
-		if (!this.__.events.hasOwnProperty(eventName)) return;
-		var index = this.__.events[eventName].indexOf(handler);
-		if (index < 0) return;
-		this.__.events[eventName].splice(index, 1);
-		return this;
-	};
+    this.removeEventListener = function (eventName, handler) {
+        eventName = eventName.toLowerCase();
+        if (!this.__.events.hasOwnProperty(eventName)) return this;
+        if(handler === undefined){
+            delete this.__.events[eventName];
+            this.__.events[eventName] = [];
+        }else{
+            if (typeof handler !== 'function') throw new EventException('Type of handler is not a function');
+            var index = this.__.events[eventName].indexOf(handler);
+            if (index < 0) return this;
+            this.__.events[eventName].splice(index, 1);
+        }
+        return this;
+    };
 
 	// Add pseudonym.
 	this.off = this.removeEventListener;
@@ -62,6 +69,7 @@ function addEventsImplementation()
 	 * @param data
 	 */
 	this.triggerEvent = function (eventName, data) {
+        eventName = eventName.toLowerCase();
 		var args = [];
 		for (var i = 1, len = arguments.length; i < len; i++) {
 			args.push(arguments[i]);

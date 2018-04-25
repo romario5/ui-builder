@@ -26,6 +26,7 @@ var files = [
 	'src/url.js',
     'src/extension.js',
     'src/built-in/*',
+    'src/modules/*',
 
 	'src/__wrap-end'
 ];
