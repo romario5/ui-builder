@@ -8,7 +8,7 @@ function UIDataAjax(params)
 	this.url = params.hasOwnProperty('url') ? params.url : '';
 	this.method = params.method || 'POST';
 	this.collector = ajaxCollector;
-    this.headers = {
+    this.headers = params.headers || {
         'X-Requested-With': 'XMLHttpRequest',
     };
 }
