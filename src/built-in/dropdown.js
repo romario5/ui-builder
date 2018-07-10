@@ -29,21 +29,21 @@ function dropdownHandler()
 	var expand = !this.hasClass('dropdown-expanded');
 	var target = this.__.dropdownTarget;
 
-	var event = new UIEvent('blur');
+	var event = new Event('blur', {cancelable: true});
 	target.triggerEvent('blur', this, event);
 
 	// Stop do anything if event is canceled.
-	if(event.canceled){
+	if(event.defaultPrevented){
 		return;
 	}
 
 	if(expand){
 		this.addClass('dropdown-expanded');
 		target.addClass('dropdown-expanded');
-		event = new UIEvent('expand');
+		event = new Event('expand', {cancelable: true});
 		target.triggerEvent('expand', this, event);
 		// Use default expanding animation if event is canceled.
-		if(!event.canceled){
+		if(!event.defaultPrevented){
 			target.slideDown(100, function(){
 				this.css({display: 'flex'});
 			});
@@ -51,10 +51,10 @@ function dropdownHandler()
 	}else{
 		this.removeClass('dropdown-expanded');
 		target.removeClass('dropdown-expanded');
-		event = new UIEvent('collapse');
+		event = new Event('collapse', {cancelable: true});
 		target.triggerEvent('collapse', this, event);
 		// Use default collapsing animation if event is canceled.
-		if(!event.canceled){
+		if(!event.defaultPrevented){
 			target.slideUp(100, function(){
 				this.css({display: 'none'});
 			});
@@ -108,9 +108,9 @@ document.addEventListener('mousedown', function(e){
 				items[i].uielement.__.dropdownHandle.removeClass('dropdown-expanded');
 
 				// Collapse dropdown.
-				var event = new UIEvent('collapse');
+				var event = new Event('collapse', {cancelable: true});
 				items[i].uielement.triggerEvent('collapse', items[i].uielement, event);
-				if(!event.canceled){
+				if(!event.defaultPrevented){
 					items[i].uielement.slideUp(100, function(){
 						this.css({display: 'none'});
 					});

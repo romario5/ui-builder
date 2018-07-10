@@ -92,14 +92,6 @@ var _router = function(route){
 	return r;
 };
 
-// Define service property that encapsulates hidden data.
-Object.defineProperty(_router, '__', {
-	value: {},
-	configurable: false,
-	enumerable: false,
-	writeable: false
-});
-_router.__.events = {};
 // Add global routing events support.
 addEventsImplementation.call(_router);
 
@@ -206,15 +198,10 @@ _router.applyChain = function(url)
 function Route(route) {
 	this.route = route;
 
-	// Define service property that encapsulates hidden data.
-	Object.defineProperty(this, '__', {
-		value: {},
-		configurable: false,
-		enumerable: false,
-		writeable: false
-	});
-
-	this.__.events = {};
+	this.__ = {
+	    events: {},
+        dispatchers: {}
+    };
 }
 
 Route.prototype = {
@@ -258,8 +245,6 @@ Route.prototype = {
             }
         }
 
-
-
 		history.pushState(params, '', _url('/' + routeArray.join('/'), params).replace('//', ''));
 
 		// Store old route.
@@ -275,7 +260,7 @@ Route.prototype = {
 			event = new Event('leave', {cancelable: true});
 
 			_router.triggerEvent('leave', prevRoute.route, curRoute.route, event);
-			if(event.canceled) return true;
+			if(event.defaultPrevented) return true;
 
 			prevRoute.triggerEvent('leave', prevRoute.route, curRoute.route, event);
 		}
@@ -292,11 +277,15 @@ Route.prototype = {
 		var route = _router(parentRoute);
 
 		if(route !== null){
-			var event = new UIEvent('apply');
+			var event = new Event('apply', {cancelable: true});
 			route.triggerEvent('apply', params, event);
 		}
 		return false;
-	}
+	},
+
+    revert: function () {
+
+    }
 };
 
 // Add events support for the Route.

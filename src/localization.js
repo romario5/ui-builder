@@ -108,6 +108,8 @@ _uibuilder.L10n = function(message, category, params)
     return translate(curTranslation, message, category, params);
 };
 
+addEventsImplementation.call(_uibuilder.L10n);
+
 
 /**
  * Returns translation of the given message.
@@ -160,6 +162,8 @@ _uibuilder.L10n.addTranslation = function(category, data)
 
 var translationsLoader = null;
 
+var currentlyLoading = {};
+
 
 /**
  * Loads translation of the given category using
@@ -175,6 +179,19 @@ _uibuilder.L10n.loadTranslations = function(category, callback)
     if(category[0] === '/'){
         category = category.slice(1);
     }
+
+    if(currentlyLoading[category] === true){
+        _uibuilder.L10n.on('categoryLoaded -> ' + category, function(t, cat) {
+            if(cat === category){
+                _uibuilder.L10n.offPort(cat);
+                if(typeof callback === 'function') {
+                    callback(t);
+                }
+            }
+        });
+        return true;
+    }
+
     if(translationsLoader === null){
         return false;
     }
@@ -182,12 +199,28 @@ _uibuilder.L10n.loadTranslations = function(category, callback)
     if(curTranslation.hasOwnProperty(category)){
         _uibuilder.triggerEvent('translations', category);
         if(typeof callback === 'function'){
-            callback();
+            var t = _uibuilder.L10n.getTranslations(category);
+            callback(t);
         }
         return true;
     }
 
-    translationsLoader(category, callback);
+    currentlyLoading[category] = true;
+
+    // Disable flag after 5 seconds to allow script to retry.
+    setTimeout(function() {
+        currentlyLoading[category] = null;
+    }, 5000);
+
+
+    translationsLoader(category, function(){
+        var t = _uibuilder.L10n.getTranslations(category);
+        _uibuilder.L10n.triggerEvent('categoryLoaded', t, category);
+        if(typeof callback === 'function') {
+            delete currentlyLoading[category];
+            callback(t);
+        }
+    });
     return true;
 };
 

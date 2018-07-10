@@ -31,7 +31,7 @@ Spinner.prototype.showInside = function(target, params)
 	var inst = this.renderTo(t, params);
 
 	// Trigger "fadein" event to allow developer implement his own fading effect.
-	var event = new UIEvent('fadein');
+	var event = new Event('fadein', {cancelable: true});
 	event.target = this;
 	this.triggerEvent('fadein', inst, event);
 
@@ -74,7 +74,7 @@ Spinner.prototype.hideInside = function(target)
 		// Skip non-spinners.
 		if(child.UI() !== this) continue;
 
-		var event = new UIEvent('fadeout');
+		var event = new Event('fadeout', {cancelable: true});
 		event.target = this;
 		this.triggerEvent('fadeout',child , event);
 

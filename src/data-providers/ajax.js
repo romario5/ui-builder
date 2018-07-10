@@ -6,8 +6,11 @@ function UIDataAjax(params)
 	UIData.call(this, params);
 	this.useCsrf = params.hasOwnProperty('useCsrf') ? params.useCsrf : true;
 	this.url = params.hasOwnProperty('url') ? params.url : '';
-	this.method = 'POST';
+	this.method = params.method || 'POST';
 	this.collector = ajaxCollector;
+    this.headers = {
+        'X-Requested-With': 'XMLHttpRequest',
+    };
 }
 
 UIDataAjax.prototype = Object.create(UIData.prototype);
@@ -16,13 +19,6 @@ UIDataAjax.prototype.constructor = UIData;
 
 // Add events to the UIDataAjax object globally.
 addEventsImplementation.call(UIDataAjax);
-Object.defineProperty(UIDataAjax, '__', {
-	value: {},
-	configurable: false,
-	enumerable: false,
-	writeable: false
-});
-UIDataAjax.__.events = {};
 _uibuilder.UIDataAjax = UIDataAjax;
 
 
@@ -66,12 +62,15 @@ function ajaxCollector(callback) {
 		if (this.status === 200) {
 
 			// Make redirection if X-Redirect header is specified.
-			var url = this.getResponseHeader('X-Redirect');
-			if (url !== null) {
-				window.location.replace(url);
-			} else {
-				_uidata.triggerEvent('error', this.status);
-			}
+			try{
+                var url = this.getResponseHeader('X-Redirect');
+                if (url !== null) {
+                    window.location.replace(url);
+                }
+			}catch(e){
+                console.warn('X-Redirect header is not allowed here.');
+            }
+
 
 			// Get data depending on content-type header.
 			var data;
@@ -90,28 +89,40 @@ function ajaxCollector(callback) {
 
 		} else {
 			_uidata.hasError = true;
-			_uidata.triggerEvent('error', this.status);
-			DataAjax.triggerEvent('error', _uidata);
-			_uidata.triggerEvent('complete', this.status);
-			DataAjax.triggerEvent('complete', _uidata);
+			var event = new Event('error', {cancelable: true});
+			_uidata.triggerEvent('error', this.status, event);
+			DataAjax.triggerEvent('error', _uidata, this.status, event);
+            event = new Event('complete', {cancelable: true});
+			_uidata.triggerEvent('complete', this.status, event);
+			DataAjax.triggerEvent('complete', _uidata, this.status, event);
 		}
 		_uidata.lastFetchTime = Date.now();
 		_uidata.ready = true;
 	};
 
-	xhttp.open(this.method, this.url, true);
+    var data = [];
+    for (var p in this._parameters) {
+    	if(typeof this._parameters[p] === 'object'){
+            data.push(encodeURIComponent(p) + '=' + encodeURIComponent(JSON.stringify(this._parameters[p])));
+		}else{
+            data.push(encodeURIComponent(p) + '=' + encodeURIComponent(this._parameters[p]));
+		}
 
-	// Set header that indicates that request was made by AJAX.
-	xhttp.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    }
+
+	xhttp.open(this.method, this.url + (this.method === 'GET' && data.length > 0 ? '?'+data.join('&') : ''), true);
+
+    // Set headers.
+    for(var h in _uidata.headers){
+        xhttp.setRequestHeader(h, _uidata.headers[h]);
+    }
 
 	// Add CSRF token to the header if it's set and method is POST.
 	if(_uidata.useCsrf && csrfToken !== null){
 		xhttp.setRequestHeader(csrfParam, csrfToken);
 	}
 
-
-	if (this.method.toUpperCase() === 'POST')
-	{
+	if (this.method.toUpperCase() === 'POST') {
 		if(this._parameters instanceof FormData){
 			// Add CSRF token to the request if it's set and method is POST.
 			if(_uidata.useCsrf && csrfToken !== null){
@@ -122,10 +133,7 @@ function ajaxCollector(callback) {
 		}
 
 		xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-		var data = [];
-		for (var p in this._parameters) {
-			data.push(encodeURIComponent(p) + '=' + encodeURIComponent(this._parameters[p]));
-		}
+
 		// Add CSRF token.
 		if(_uidata.useCsrf && csrfToken !== null){
 			data.push(csrfParam + '=' + csrfToken);

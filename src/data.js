@@ -29,14 +29,10 @@
 function UIData(params)
 {
 	// Define service property that encapsulates hidden data.
-	Object.defineProperty(this, '__', {
-		value: {},
-		configurable: false,
-		enumerable: false,
-		writeable: false
-	});
-
-	this.__.events = {};
+	this.__ = {
+		events: {},
+		dispatchers: {}
+	};
 
     /**
 	 * Flag if last fetch was completed with error.
@@ -166,13 +162,6 @@ UIData.prototype.send = UIData.prototype.fetch;
 addEventsImplementation.call(UIData.prototype);
 
 // Also add events to the UIData object globally.
-Object.defineProperty(UIData, '__', {
-	value: {},
-	configurable: false,
-	enumerable: false,
-	writeable: false
-});
-UIData.__.events = {};
 addEventsImplementation.call(UIData);
 
 _uibuilder.UIData = UIData;

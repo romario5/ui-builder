@@ -10,7 +10,10 @@
 function Extension(options)
 {
     this.name = ''; // Name of the extension.
-    this.__ = {events: {}};
+    this.__ = {
+        events: {},
+        dispatchers: {}
+    };
 
     for (var p in options) {
         if(options.hasOwnProperty(p)){
@@ -28,6 +31,7 @@ Extension.prototype = {
         if(params === undefined){
             params = {};
         }
+        _uibuilder.Extension.triggerEvent('apply', this, target, params);
         this.triggerEvent('apply', target, params);
     }
 };
@@ -52,7 +56,7 @@ _uibuilder.Extension = function(name)
     warn('Extension with name ' + name + ' is not registered yet.');
     return null;
 };
-
+addEventsImplementation.call(_uibuilder.Extension);
 
 /**
  * Registers new extension.

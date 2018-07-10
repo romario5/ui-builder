@@ -17,6 +17,9 @@ var uiExtendings = {};
  * @return {UI|null}
  */
 function _uibuilder(name) {
+    if (layouts !== undefined && layouts.hasOwnProperty(name)){
+        return null;
+    }
     if (uiList.hasOwnProperty(name)) {
         return uiList[name];
     }
@@ -83,6 +86,7 @@ _uibuilder.createResetStyles = function(styles)
  */
 _uibuilder.__ = {};
 _uibuilder.__.events = {};
+_uibuilder.__.dispatchers = {};
 addEventsImplementation.call(_uibuilder);
 
 
@@ -108,6 +112,9 @@ _uibuilder.register = function(data) {
 	if(typeof data === 'string'){
 		data = {name : data};
 	}
+    if (layouts !== undefined && layouts.hasOwnProperty(data.name)){
+        throw new UIRegistrationException('Layout with name "' + data.name + '" already registered.');
+    }
 	checkUIParameters(data);
 	uiList[data.name] = new UI(data);
 	_uibuilder.triggerEvent('register', uiList[data.name]);

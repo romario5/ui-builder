@@ -11,19 +11,14 @@
  *  Constructor of the UI instance.
  */
 function UIInstance() {
-	// Define service property that encapsulates hidden data.
-	Object.defineProperty(this, '__', {
-		value: {},
-		configurable: false,
-		enumerable: false,
-		writeable: false
-	});
-
-	this.__.events = {};
-	this.__.ui = null;
-	this.__.parent = null;
-	this.__.data = null;
-	this.__.params = {};
+	this.__ = {
+		events: {},
+		dispatchers: {},
+		ui: null,
+		parent: null,
+		data: null,
+		params: {}
+	};
 }
 
 
@@ -77,6 +72,20 @@ UIInstance.prototype.UI = function () {
 	return this.__.ui;
 };
 
+/**
+ * Returns UI of the instance.
+ * @returns {UI|*}
+ * @constructor
+ */
+UIInstance.prototype.loadLocalization = function (callback) {
+	var L = this.__.ui.localization;
+	if(L !== null){
+		L10n.loadTranslations(L, callback);
+	}else{
+		warn('Localization loading failed: localization category is not specified for the UI "' + this.__.ui.name + '".');
+	}
+};
+
 
 /**
  * Returns parameters of the instance.
@@ -124,20 +133,20 @@ UIInstance.prototype.load = function (data, replace, atStart) {
 
 
 	// Trigger event on the UI.
-	var event = new UIEvent('load');
+	var event = new Event('load', {cancelable: true});
 	event.target = this.__.ui;
 	this.__.ui.triggerEvent('load', this, data, event);
-	if (event.canceled){
+	if (event.defaultPrevented){
         this.triggerEvent('afterload', data);
         this.__.ui.triggerEvent('afterload', this, data);
 	    return this;
     }
 
 	// Trigger event on the instance.
-	event = new UIEvent('load');
+	event = new Event('load', {cancelable: true});
 	event.target = this;
 	this.triggerEvent('load', data, event);
-	if (event.canceled){
+	if (event.defaultPrevented){
         this.triggerEvent('afterload', data);
         this.__.ui.triggerEvent('afterload', this, data);
 	    return this;

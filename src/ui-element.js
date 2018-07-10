@@ -23,16 +23,12 @@
  */
 function UIElement(params){
 	// Define service property that encapsulates hidden data.
-	Object.defineProperty(this, '__', {
-		value: {},
-		configurable: false,
-		enumerable: false,
-		writeable: false
-	});
+	this.__ = {};
 
 	// set parameters
 	this.__.name = params.name !== undefined ? params.name : null;
 	this.__.child = params.child !== undefined ? params.child : null;
+	this.__.childParams = params.parameters || {};
 	this.__.class = params.class !== undefined ? params.class : null;
 	this.__.id = params.id !== undefined ? params.id : null;
 	this.__.tag = params.tag !== null && params.tag !== undefined ? params.tag.toLowerCase() : 'div';
@@ -75,6 +71,7 @@ function UIElement(params){
 
 	// Events handlers container.
 	this.__.events = {};
+	this.__.dispatchers = {};
 
 	var p;
 	// Attach attributes.
@@ -194,7 +191,6 @@ UIElement.prototype.findTopLocalParent = function () {
 			break;
 		}
 	}
-
 	if (p === this) return null;
 	return p;
 };
@@ -258,7 +254,7 @@ UIElement.prototype.getAllNearbyElements = function()
  * List of events that will be attached directly to the node.
  * @type {[*]}
  */
-var nativeEvents = ['submit', 'abort', 'beforeinput', 'blur', 'click', 'compositionen',
+var nativeEvents = ['submit', 'abort', 'beforeinput', 'blur', 'click', 'compositionen', 'paste',
 	'compositionstart', 'compositionupdate', 'dblclick', 'error', 'focus', 'change',
 	'focusin', 'focusout', 'input', 'keydown', 'keypress', 'keyup', 'load',
 	'mousedown', 'mouseenter', 'mouseleave', 'mousemove', 'mouseout', 'mouseover', 'mousewheel',
@@ -272,6 +268,7 @@ var nativeEvents = ['submit', 'abort', 'beforeinput', 'blur', 'click', 'composit
  * do NOT use [addEventsImplementation] for UIElement!
  */
 UIElement.prototype.addEventListener = function (eventName, callback) {
+	eventName = eventName.toLowerCase();
 	if(typeof callback !== 'function'){
 		error('Invalid callback type given for the event "'+ eventName + '".');
 		return;
@@ -298,6 +295,7 @@ UIElement.prototype.on = UIElement.prototype.addEventListener;
 
 
 UIElement.prototype.removeEventListener = function (eventName, callback) {
+    eventName = eventName.toLowerCase();
 	if (eventName.slice(0, 2) === 'on') eventName = eventName.slice(2);
 	if (!this.__.events.hasOwnProperty(eventName)) return this;
 
@@ -317,6 +315,7 @@ UIElement.prototype.removeAllEventListeners = function (eventName) {
 };
 
 UIElement.prototype.off = function (eventName, callback) {
+    eventName = eventName.toLowerCase();
 	if (callback !== undefined) {
 		this.removeEventListener(eventName, callback);
 	} else {
@@ -327,6 +326,7 @@ UIElement.prototype.off = function (eventName, callback) {
 
 
 UIElement.prototype.triggerEvent = function (eventName, data) {
+    eventName = eventName.toLowerCase();
 	var args = [], i;
 	for (i = 1; i < arguments.length; i++) {
 		args.push(arguments[i]);
@@ -378,7 +378,7 @@ UIElement.prototype.remove = function () {
  */
 UIElement.prototype.addOne = function (atStart, params) {
 	if (typeof params !== 'object') {
-		params = typeof atStart === 'object' ? atStart : {};
+		params = typeof atStart === 'object' ? atStart : this.__.childParams;
 	}
 	atStart = typeof atStart === 'boolean' ? atStart : false;
 	if (this.__.child === null) return null;
@@ -441,6 +441,10 @@ UIElement.prototype.attr = function (name, value) {
 
 UIElement.prototype.hasAttr = function (name) {
 	return this.__.node.hasAttribute(name);
+};
+
+UIElement.prototype.removeAttr = function (name) {
+	return this.__.node.removeAttribute(name);
 };
 
 
@@ -672,10 +676,10 @@ UIElement.prototype.computedStyle = function () {
 
 /**
  * Smoothly shows element by changing opacity over the time.
- * @param {number} duration Fading duration in milliseconds.
- * @param {string|number} displayAs If set will be used to set display
+ * @param {number} [duration] Fading duration in milliseconds.
+ * @param {string|number} [displayAs] If set will be used to set display
  * css property before animation start.
- * @param {function|number} callback
+ * @param {function|number} [callback]
  * @returns {UIElement} (itself)
  * @see fadeOut()
  * @see fadeToggle()
@@ -703,10 +707,10 @@ UIElement.prototype.fadeIn = function (duration, displayAs, callback) {
 
 /**
  * Smoothly hides element by changing opacity over the time.
- * @param {int} duration Fading duration in miliseconds.
- * @param {boolean} hideOnEnd If true the css display property will be set to 'none'
+ * @param {int} [duration] Fading duration in miliseconds.
+ * @param {boolean} [hideOnEnd] If true the css display property will be set to 'none'
  * on animation finish.
- * @param {function} callback
+ * @param {function} [callback]
  * @returns {UIElement} (itself)
  * @see fadeIn()
  * @see fadeToggle()
@@ -742,12 +746,12 @@ UIElement.prototype.fadeOut = function (duration, hideOnEnd, callback) {
 
 /**
  * Toggles fading effect.
- * @param {int} duration Fading duration in milliseconds.
- * @param {string} displayAs If set will be used to set display
+ * @param {int} [duration] Fading duration in milliseconds.
+ * @param {string} [displayAs] If set will be used to set display
  * CSS property before animation start in case of fadeIn() method will be applied.
  * If fadeOut() method and displayAs property is specified - element will be hidden after
  * animation finish.
- * @param {function} callback
+ * @param {function} [callback]
  * @returns {UIElement} (itself)
  * @see fadeIn()
  * @see fadeOut()
@@ -766,8 +770,8 @@ UIElement.prototype.fadeToggle = function (duration, displayAs, callback) {
  * Animates CSS properties of the object.
  * @param {object} props Object with animated properties.
  * Keys are properties names and values are the end values.
- * @param {number} duration Duration in milliseconds.
- * @param {function} callback Function that will be called when animation will be finished.
+ * @param {number} [duration] Duration in milliseconds.
+ * @param {function} [callback] Function that will be called when animation will be finished.
  * @return {UIElement} (itself)
  * @see Animation
  */
@@ -792,11 +796,6 @@ UIElement.prototype.animate = function (props, duration, callback) {
 		}
 		endVals[p] = parseFloat(endVals[p].toString().replace(/[^-\d.]/gi, ''));
 	}
-
-	/*
-	 console.log(startVals);
-	 console.log(endVals);
-	 */
 
 	this.stopAnimation();
 
@@ -898,12 +897,12 @@ UIElement.prototype.load = function (data, replace, atStart) {
 	}
 
 	// Trigger 'load' event if any element wants to handle it with specific logic.
-	var event = new UIEvent('load');
+	var event = new Event('load', {cancelable: true});
 	event.target = this;
 	this.triggerEvent('load', data, event);
 
 	// Stop loading if event was cancelled by preventDefault() method.
-	if (event.canceled) return this;
+	if (event.defaultPrevented) return this;
 
 	// If data is string - use is as innerHTML (for <img/> "src" attribute will be used).
 	if (typeof data === 'string' || typeof data === 'number') {
@@ -975,14 +974,14 @@ UIElement.prototype.load = function (data, replace, atStart) {
 		throw new UIElementLoadException('Unsupported data type given (' + typeof data + '). Only string or object can be used.');
 	}
 
-	this.triggerEvent('afterload');
+	this.triggerEvent('afterload', data);
 	return this;
 };
 
 
 /**
  * Resets values of the inputs/selects inside the UIElement.
- * @param {boolean} compact
+ * @param {boolean} [compact]
  * @returns {{}}
  */
 UIElement.prototype.resetValues = function (compact) {
@@ -999,10 +998,13 @@ UIElement.prototype.gatherData = function (compact) {
 	if (compact === undefined) compact = true;
 	var data = {};
 
-    var event = new Event('gather');
+    var event = new Event('gather', {cancelable: true});
     this.triggerEvent('gather', data, event);
 
-	gatherElementData(this, data, data, null, true);
+    if(!event.defaultPrevented){
+        gatherElementData(this, data, data, null, true);
+	}
+
 	if (compact) compactData(data);
 	return data;
 };
@@ -1020,12 +1022,16 @@ function gatherElementData(target, data, curData, propName, gatherChildNodes) {
 	if (typeof curData !== 'object') curData = data;
 	var children;
 	var name = null;
+	var event;
 
-	if (target.hasAttr('name')) {
+	if (target.hasAttr('name') && target.attr('name') !== '') {
 		name = target.attr('name');
 
-		var event = new Event('gather');
+        event = new Event('gather', {cancelable: true});
 		target.triggerEvent('gather', data, event);
+		if(event.defaultPrevented){
+			return data;
+		}
 
 		// Get value if element is <input/> or <select/>.
 		if (['INPUT', 'TEXTAREA', 'SELECT'].indexOf(target.tagName()) >= 0) {
@@ -1042,34 +1048,50 @@ function gatherElementData(target, data, curData, propName, gatherChildNodes) {
 
 	// Process inclusion.
 	if (target.hasInclusion()) {
-		var tmp = {};
-		gatherInstanceData(target.inclusion(), tmp, null, curData, propName);
-		if (Object.keys(tmp).length > 0 && !data.hasOwnProperty(propName)) {
-			if (name !== null) {
-				data[name] = tmp;
-			} else {
-				for (var p in tmp) {
-					data[p] = tmp[p];
-				}
-			}
+        event = new Event('gather', {cancelable: true});
+        target.inclusion().UI().triggerEvent('gather', target.inclusion(), data, event);
+        target.inclusion().triggerEvent('gather', data, event);
+        if(!event.defaultPrevented){
+            var tmp = {};
+            gatherInstanceData(target.inclusion(), tmp, null, curData, propName);
+            if (Object.keys(tmp).length > 0 && !data.hasOwnProperty(propName)) {
+                if (name !== null) {
+                    data[name] = tmp;
+                } else {
+                    for (var p in tmp) {
+                        data[p] = tmp[p];
+                    }
+                }
+            }
 		}
+
+
 
 		// Gather child instances.
 	} else if (target.hasChildUI()) {
-		var res = [];
-		if (name !== null || propName !== null) {
-			children = target.children();
-			for (var i = 0; i < children.length; i++) {
-				var tmp = {};
-				gatherInstanceData(children[i], tmp, null, curData, propName);
-				if (Object.keys(tmp).length > 0) res.push(tmp);
-			}
-			if (name !== null) {
-				data[name] = res;
-			} else if (propName !== null) {
-				curData !== null ? curData[propName] = res : data[propName] = res;
-			}
-		}
+        event = new Event('gather', {cancelable: true});
+        target.triggerEvent('gather', data, event);
+        if(!event.defaultPrevented) {
+            var res = [];
+            if (name !== null || propName !== null) {
+                children = target.children();
+                for (var i = 0; i < children.length; i++) {
+                    var tmp = {};
+                    event = new Event('gather', {cancelable: true});
+                    children[i].UI().triggerEvent('gather', children[i], tmp, event);
+                    children[i].triggerEvent('gather', tmp, event);
+                    if(!event.defaultPrevented) {
+                        gatherInstanceData(children[i], tmp, null, curData, propName);
+                    }
+                    if (Object.keys(tmp).length > 0) res.push(tmp);
+                }
+                if (name !== null) {
+                    data[name] = res;
+                } else if (propName !== null) {
+                    curData !== null ? curData[propName] = res : data[propName] = res;
+                }
+            }
+        }
 
 
 		// Gather child instances.
@@ -1077,19 +1099,27 @@ function gatherElementData(target, data, curData, propName, gatherChildNodes) {
 		children = target.children();
 		for (var i = 0; i < children.length; i++) {
 			if (children[i] instanceof UIInstance) {
-                var root = children[i].getRootElement();
-                if(root.hasAttr('name')){
-                    name = root.attr('name');
+                event = new Event('gather', {cancelable: true});
+                children[i].triggerEvent('gather', data, event);
+                if(!event.defaultPrevented) {
+                    var root = children[i].getRootElement();
+                    event = new Event('gather', {cancelable: true});
+                    root.triggerEvent('gather', data, event);
+                    if(!event.defaultPrevented) {
+                        if (root.hasAttr('name')) {
+                            name = root.attr('name');
+                        }
+                        var tmp = {};
+                        gatherInstanceData(children[i], tmp, null, curData, propName);
+                        if (name !== null) {
+                            data[name] = tmp;
+                        } else {
+                            for (var p in tmp) {
+                                data[p] = tmp[p];
+                            }
+                        }
+                    }
                 }
-				var tmp = {};
-				gatherInstanceData(children[i], tmp, null, curData, propName);
-				if (name !== null) {
-					data[name] = tmp;
-				} else {
-					for (var p in tmp) {
-						data[p] = tmp[p];
-					}
-				}
 			}
 		}
 
@@ -1119,6 +1149,17 @@ function gatherElementData(target, data, curData, propName, gatherChildNodes) {
 function gatherInstanceData(instance, result, scheme, curData, propName) {
 	if (scheme === undefined || scheme === null) scheme = instance.__.ui.scheme;
 	if (result === undefined) result = {};
+
+	// Allow developer to define custom data gathering logic.
+	var event = new Event('gather', {cancelable : true});
+	instance.triggerEvent('gather', result, event);
+	if(event.defaultPrevented){
+	    return;
+    }
+    instance.UI().triggerEvent('gather', instance, result, event);
+    if(event.defaultPrevented) return;
+
+
 	var v, keys, res;
 	for (var p in scheme) {
 		if (!instance.hasOwnProperty(p)) continue;
@@ -1127,9 +1168,13 @@ function gatherInstanceData(instance, result, scheme, curData, propName) {
 
 		var s = scheme[p];
 		keys = Object.keys(v);
-		if (keys.length > 0) {
-			addGatheredData(result, keys[0], v[keys[0]]);
-		}
+
+        for(var k in v){
+            if(v.hasOwnProperty(k)){
+                addGatheredData(result, k, v[k]);
+            }
+        }
+
 		v = typeof v[keys[0]] === 'object' ? v = v[keys[0]] : v = result;
 
 		if (typeof s === 'object') {
@@ -1195,6 +1240,7 @@ function compactData(data) {
 
 function cloneObjectTo(src, dst){
     for(var p in src){
+        if (p === '__') continue;
         if(src.hasOwnProperty(p)){
             if(Array.isArray(src[p])){
                 dst[p] = src[p].slice(0);

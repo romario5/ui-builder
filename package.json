@@ -16,15 +16,21 @@
   ],
   "author": "Roman Muravchuk",
   "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build.js"
+  },
   "bugs": {
     "url": "https://github.com/Romario5/UIBuilder/issues"
   },
   "homepage": "https://github.com/Romario5/UIBuilder#readme",
   "devDependencies": {
-	"gulp": "^3.9.1",
+    "babel-core": "^6.26.3",
+    "babel-preset-es2015-rollup": "^3.0.0",
+    "gulp": "^4.0.0",
     "gulp-concat": "^2.6.1",
     "gulp-uglify": "^3.0.0",
-    "browserify": "^14.1.0",
+    "rollup": "^0.59.2",
+    "rollup-plugin-babel": "^3.0.4",
     "uglify-js": "^2.7.5"
   },
   "dependencies": {},

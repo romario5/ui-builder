@@ -9,12 +9,11 @@
  *
  * Example: addEventsImplementation.call(UIElement.prototype);
  */
-function addEventsImplementation()
+export default function eventsImplementation()
 {
     if(!this.hasOwnProperty('__')){
-        this.__ = {};
+        this.__ = {events : {}};
     }
-    this.__.events = {};
     this.__.dispatchers = {};
 
     /**
@@ -24,8 +23,8 @@ function addEventsImplementation()
      * @returns {EventsDispatcher}
      */
     this.listen = function (eventName, handler) {
-        var portNumber = null;
-        var arr = eventName.split('->');
+        let portNumber = null;
+        let arr = eventName.split('->');
         if(arr.length === 2){
             eventName = arr[0].trim();
             portNumber = arr[1].trim();
@@ -35,7 +34,7 @@ function addEventsImplementation()
             this.__.dispatchers[eventName] = new EventsDispatcher(eventName);
         }
         if(portNumber !== null && typeof handler === 'function'){
-            this.__.dispatchers[eventName].onPort(portNumber, handler);
+            this.__.dispatchers[eventName].on(portNumber, handler);
         }
         return this.__.dispatchers[eventName];
     };
@@ -47,23 +46,11 @@ function addEventsImplementation()
      * @throw EventException
      */
     this.addEventListener = function (eventName, handler) {
-        var portNumber = null;
-        var arr = eventName.split('->');
-        if(arr.length === 2){
-            eventName = arr[0].trim();
-            portNumber = arr[1].trim();
-        }
         eventName = eventName.toLowerCase();
         if (typeof handler !== 'function') throw new EventException('Type of handler is not a function');
-
-        if(portNumber !== null){
-            this.listen(eventName).onPort(portNumber, handler);
-        }else{
-            if (!Array.isArray(this.__.events[eventName])) this.__.events[eventName] = [];
-            if (this.__.events[eventName].indexOf(handler) >= 0) return;
-            this.__.events[eventName].push(handler);
-        }
-
+        if (!Array.isArray(this.__.events[eventName])) this.__.events[eventName] = [];
+        if (this.__.events[eventName].indexOf(handler) >= 0) return;
+        this.__.events[eventName].push(handler);
         return this;
     };
 
@@ -85,7 +72,7 @@ function addEventsImplementation()
             this.__.events[eventName] = [];
         }else{
             if (typeof handler !== 'function') throw new EventException('Type of handler is not a function');
-            var index = this.__.events[eventName].indexOf(handler);
+            let index = this.__.events[eventName].indexOf(handler);
             if (index < 0) return this;
             this.__.events[eventName].splice(index, 1);
         }
@@ -106,17 +93,15 @@ function addEventsImplementation()
      */
     this.triggerEvent = function (eventName, data) {
         eventName = eventName.toLowerCase();
-        var args = [];
-        for (var i = 1, len = arguments.length; i < len; i++) {
+        let args = [];
+        for (let i = 1, len = arguments.length; i < len; i++) {
             args.push(arguments[i]);
         }
 
-        if (this.__.events.hasOwnProperty(eventName)) {
-            for (var i = 0; i < this.__.events[eventName].length; i++) {
-                this.__.events[eventName][i].apply(this, args);
-            }
+        if (!this.__.events.hasOwnProperty(eventName)) return;
+        for (let i = 0; i < this.__.events[eventName].length; i++) {
+            this.__.events[eventName][i].apply(this, args);
         }
-
 
         if(this.__.dispatchers.hasOwnProperty(eventName)){
             this.__.dispatchers[eventName].runHandlers(this, args);
@@ -125,8 +110,7 @@ function addEventsImplementation()
 
     this.offPort = function (eventName, portNumber) {
         if(portNumber === undefined){
-            eventName = eventName + '';
-            var arr = eventName.split('->');
+            let arr = eventName.split('->');
             if(arr.length === 2){
                 eventName = arr[0].trim();
                 portNumber = arr[1].trim();
@@ -151,71 +135,38 @@ function addEventsImplementation()
 /**
  * Object that encapsulates events ports.
  */
-function EventsDispatcher (eventName){
-	this.eventName = eventName;
-	this.ports = {};
-}
+class EventsDispatcher {
+    constructor (eventName) {
+        this.eventName = eventName;
+        this.ports = {};
+    }
 
-EventsDispatcher.prototype = {
-	constructor: EventsDispatcher,
-
-    onPort: function(portNumber, handler) {
-        if (this.ports.hasOwnProperty(portNumber)) {
+    onPort(portNumber, handler){
+        if(this.ports.hasOwnProperty(portNumber)){
             delete this.ports[portNumber];
         }
-        if (typeof handler !== 'function') {
+        if(typeof handler !== 'function'){
             throw new EventException('Type of handler is not a function');
         }
         this.ports[portNumber] = handler;
-    },
+    }
 
-    runHandlers: function(context, args) {
-        for (var p in this.ports) {
-            if (this.ports.hasOwnProperty(p)) {
-                this.ports[p].apply(context, args);
+    runHandlers(context, args){
+        for(let p in this.ports){
+            if(this.ports.hasOwnProperty(p)){
+                this.ports[p].apply(context, arguments);
             }
         }
-    },
+    }
 
-    offPort: function(portNumber) {
-        if (this.ports.hasOwnProperty(portNumber)) {
+    offPort(portNumber){
+        if(this.ports.hasOwnProperty(portNumber)){
             delete this.ports[portNumber];
         }
-    },
+    }
 
-    offAllPorts: function() {
+    offAllPorts(){
         delete this.ports;
         this.ports = {};
-    },
-};
-
-/**
- * Simple object helper that manages global events.
- * Usage:
- *
- *  // Add first listener.
- *  GlobalEvents.listen('ws:incomingMessage').onPort(500, message => {
- *      // Do something with message...
- *  });
- *
- *  // Add another event listener.
- *  GlobalEvents.listen('ws:incomingMessage -> 501', message => {
- *      // Do something with message...
- *  });
- *
- *  // Then trigger this event.
- *  GlobalEvents.triggerEvent('ws:incomingMessage', {
- *      author: 'Roman',
- *      text: 'Hello world!'
- *  });
- *
- * @returns {string}
- */
-function GlobalEvents()
-{
-    return '1.0.0';
+    }
 }
-_uibuilder.GlobalEvents = GlobalEvents;
-
-
-addEventsImplementation.call(GlobalEvents);

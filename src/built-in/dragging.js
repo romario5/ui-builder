@@ -91,10 +91,10 @@ function dragStartHandler(inst, e)
 {
 	e.preventDefault();
 
-	var event = new UIEvent('dragstart');
+	var event = new Event('dragstart', {cancelable: true});
 	event.target = this;
 	this.triggerEvent('dragstart', inst, event);
-	if(event.canceled){
+	if(event.defaultPrevented){
 		return;
 	}
 
@@ -170,21 +170,21 @@ function draggingHandler(e)
         }
 	}
 
-	var event = new UIEvent('drag');
+	var event = new Event('drag', {cancelable: true});
 	event.target = dragged;
 	var initialPoint = new Point(iLeft, iTop);
 	var newPoint = new Point(newLeft, newTop);
 	dragged.triggerEvent('drag', dragged.UII(), initialPoint, newPoint, event);
-	if(event.canceled){
+	if(event.defaultPrevented){
 		return;
 	}
 
 	var cssObj = {position: withinParent ? 'absolute' : 'fixed'};
 	if(dragged.__.dragX){
-		cssObj.left = newLeft + 'px';
+		cssObj.left = newPoint.x + 'px';
 	}
 	if(dragged.__.dragY){
-		cssObj.top = newTop + 'px';
+		cssObj.top = newPoint.y + 'px';
 	}
 	dragged.css(cssObj);
 }

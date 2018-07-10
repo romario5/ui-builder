@@ -15,16 +15,9 @@ function UIDataWS(params)
 UIDataWS.prototype = Object.create(UIData.prototype);
 UIDataWS.prototype.constructor = UIData;
 
-
 // Add events to the UIDataAjax object globally.
 addEventsImplementation.call(UIDataWS);
-Object.defineProperty(UIDataWS, '__', {
-	value: {},
-	configurable: false,
-	enumerable: false,
-	writeable: false
-});
-UIDataWS.__.events = {};
+
 _uibuilder.UIDataWS = UIDataWS;
 
 
@@ -65,7 +58,8 @@ function UIWebSocket(params)
 	this.reconnectionInterval = params.reconnectionInterval ? params.reconnectionInterval : 5000;
 	this.tokens = {};
 	this.__ = {
-		events : {}
+		events : {},
+		dispatchers: {}
 	}
 }
 
@@ -175,8 +169,11 @@ UIWebSocket.prototype.send = function(data, callback) {
 	if(this.conn === null) return;
 	var d = new WebSocketData(data);
 	this.tokens[d.token] = callback;
-	this.conn.send(JSON.stringify(d));
-	this.triggerEvent('send', d);
+	var dataWrapper = {data: d};
+	// Allow user to modify data sent.
+	this.triggerEvent('beforeSend', dataWrapper);
+	this.conn.send(JSON.stringify(dataWrapper.data));
+	this.triggerEvent('send', dataWrapper.data);
 };
 
 

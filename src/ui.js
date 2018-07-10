@@ -41,18 +41,13 @@ function UI(options) {
 
 	this.cssLoaded = false;
 
-	// Define service property that encapsulates hidden data.
-	Object.defineProperty(this, '__', {
-		value: {},
-		configurable: false,
-		enumerable: false,
-		writeable: false
-	});
-
-	this.__.events = {};
-	this.__.styleNode = null;
-	this.__.data = options.hasOwnProperty('data') ? options.data : null;
-	this.__.url = null;
+	this.__ = {
+		events: {},
+		dispatchers: {},
+		styleNode: null,
+		data: options.hasOwnProperty('data') ? options.data : null,
+		url: null
+	};
 
 	// Parameters to be used on rendering.
 	if(options.hasOwnProperty('parameters')){
@@ -401,14 +396,18 @@ UI.prototype.getRootElement = function ()
  * @param {node|string|UIElement} container - element in which UIInstance will be built
  * @param {boolean} [atStart] - if true, builds UI into start of the list (default - false)
  * @param {object} [params]
- * 
+ *
  * @event beforerender
  * @event render
- * 
+ *
  * @return {UIInstance}
  **/
 UI.prototype.renderTo = function (container, atStart, params)
 {
+	if(params === undefined && typeof atStart === 'object'){
+		params = atStart;
+		atStart = false;
+	}
 	// Lets allow users to modify rendering options during 'beforeRender' event.
 	var options = {
 	    container : container,
@@ -465,7 +464,7 @@ UI.prototype.renderTo = function (container, atStart, params)
 			params[p] = filterUIParameterValue(params[p]);
 		}
 	}
-	
+
 	// Append default parameters that absent in the given by user.
 	for (var p in this.__.params) {
 		if ( ! params.hasOwnProperty(p) ){
@@ -476,9 +475,13 @@ UI.prototype.renderTo = function (container, atStart, params)
 	instance.__.params = params;
 
 	// Trigger 'render' event.
-	var event = new UIEvent('render');
+	var event = new Event('render', {cancelable: true});
 	event.target = this;
 	this.triggerEvent('render', instance, params, event);
+
+	if(_uibuilder.isElement(container)){
+		container.triggerEvent('renderInside', instance);
+	}
 
 	return instance;
 };
@@ -486,10 +489,11 @@ UI.prototype.renderTo = function (container, atStart, params)
 
 /**
  * Renders UI to the <body/>.
- * @param params
+ * @param {boolean|object}atStart
+ * @param {object} [params]
  */
-UI.prototype.render = function (params) {
-    return this.renderTo('body', params);
+UI.prototype.render = function (atStart, params) {
+    return this.renderTo('body', atStart, params);
 };
 
 
@@ -502,7 +506,7 @@ UI.prototype.render = function (params) {
 function filterUIParameterValue(value)
 {
 	var numberRegexp = /^\d+(\.?\d+)?$/i;
-	
+
 	if(value === 'null'){
 		value = null;
 	}else if(value === 'true'){
@@ -512,7 +516,7 @@ function filterUIParameterValue(value)
 	}else if(numberRegexp.test(value)){
 		value = Number(value);
 	}
-	
+
 	return value;
 }
 
@@ -601,6 +605,9 @@ UI.prototype.generateCSS = function(data, parentSelector, parentEl)
 				var s = style;
 				if(styleName === 'content'){
 					s = (style === '' ? '""' : '"'+style+'"');
+					if(style.slice(0, 5) === 'attr('){
+						s = style;
+					}
 				}
 				cssText += '    ' + makeClassName(styleName) + ': ' + s + ";\n";
 
@@ -621,7 +628,7 @@ UI.prototype.generateCSS = function(data, parentSelector, parentEl)
 
 
 /**
- * Generates CSS for the UI using [generageCSS()] method 
+ * Generates CSS for the UI using [generageCSS()] method
  * and appends it as new <style> tag.
  */
 UI.prototype.createStyles = function()
@@ -670,7 +677,7 @@ UIExtending.prototype = {
         if(!options.hasOwnProperty('translations')) options.translations = {};
         if(!options.hasOwnProperty('params')) options.params = {};
 
-        extendingUI.uiiConstructor = extendedUI.uiiConstructor;
+
         extendingUI.elements = {};
         extendingUI.scheme = extendObject(options.scheme, cloneObject(extendedUI.scheme));
         extendingUI.rules = extendObject(options.rules, cloneObject(extendedUI.rules));
@@ -687,6 +694,25 @@ UIExtending.prototype = {
         extendingUI.__.data = options.hasOwnProperty('data') ? options.data : null;
         extendingUI.__.url = null;
 
+
+        extendingUI.uiiConstructor = extendedUI.uiiConstructor;
+
+
+        // Define instance constructor to implement methods.
+        extendingUI.uiiConstructor = !options.hasOwnProperty('methods') ? extendedUI.uiiConstructor : (function(){
+            function AnotherUIInstance(options){
+                UIInstance.call(this, options);
+            }
+            AnotherUIInstance.prototype = Object.create(extendedUI.uiiConstructor.prototype);
+            AnotherUIInstance.prototype.constructor = UIInstance;
+            for(var p in options.methods){
+                if(typeof options.methods[p] === 'function' && !UIInstance.prototype.hasOwnProperty(p)){
+                    AnotherUIInstance.prototype[p] = options.methods[p];
+                }
+            }
+            return AnotherUIInstance;
+        })();
+
         // Parameters to be used on rendering.
         if(options.hasOwnProperty('parameters')){
             extendingUI.__.params = extendObject(options.parameters, cloneObject(extendedUI.__.params));
@@ -701,7 +727,7 @@ UIExtending.prototype = {
             error(e);
         }
 
-        for(var p in this.elements){
+        for(var p in extendingUI.elements){
             if(extendingUI.rules.hasOwnProperty(p) && extendingUI.elements[p].rules === ''){
                 extendingUI.elements[p].rules = extendingUI.rules[p];
             }

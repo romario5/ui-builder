@@ -1,12 +1,12 @@
-var gulp = require('gulp');
-var uglify = require('gulp-uglify');
-var concat = require('gulp-concat');
+const gulp = require('gulp');
+const uglify = require('gulp-uglify');
+const concat = require('gulp-concat');
 
 gulp.task('build', defaultTask);
-gulp.task('build-nc', builsdNoCompress);
+gulp.task('build-nc', buildNoCompress);
 
 
-var files = [
+let files = [
 	'src/__wrap-start',
 	
 	'src/core.js',
@@ -33,20 +33,24 @@ var files = [
 
 
 function defaultTask(done) {
-  
 	gulp.src(files)
 		.pipe(concat('ui-builder.min.js'))
 		.pipe(uglify())
-		.pipe(gulp.dest('dist'));
+        .on('error', function(err) {
+            console.error('Error in compress task', err.toString());
+        })
+		.pipe(gulp.dest('dist'))
+        .on('error', function(err) {
+            console.error('Error in compress task', err.toString());
+        });
 
-  done();
+  	done();
 }
 
-function builsdNoCompress(done) {
-  
+function buildNoCompress(done) {
 	gulp.src(files)
 		.pipe(concat('ui-builder.js'))
 		.pipe(gulp.dest('dist'));
 
-  done();
+  	done();
 }
