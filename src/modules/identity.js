@@ -1,3 +1,5 @@
+import addEventsMethods from '../utils/events-methods';
+
 /**
  *       Identity module
  * ___________________________
@@ -30,7 +32,7 @@
  * Currently authorized used.
  * @type {null|User}
  */
-var currentUser = null;
+let currentUser = null;
 
 
 /**
@@ -41,14 +43,14 @@ var currentUser = null;
  * @event changeUser - Occurred when current user changes.
  * @returns {null|User}
  */
-function Identity()
+export default function Identity()
 {
     return currentUser;
 }
 /**
  * Add events support to the Identity object.
  */
-addEventsImplementation.call(Identity);
+addEventsMethods(Identity);
 
 /**
  * Returns true if user is guest.
@@ -60,7 +62,7 @@ Identity.isGuest = function () {
 
 /**
  * Returns currently authorized user.
- * @returns {null}
+ * @returns {User|null}
  */
 Identity.getUser = function () {
     return currentUser;
@@ -74,6 +76,7 @@ Identity.getUser = function () {
 function User(userData)
 {
     this.id = userData.id || null;
+    this.role = userData.role || null;
     this.firstName = userData.firstName || '';
     this.secondName = userData.secondName || '';
     this.email = userData.email || '';
@@ -130,10 +133,7 @@ User.prototype = {
  */
 Identity.changeUser = function(userData)
 {
-    var newUser = new User(userData);
+    let newUser = new User(userData);
     Identity.triggerEvent('changeUser', currentUser, newUser);
     currentUser = newUser;
 };
-
-
-_uibuilder.Identity = Identity;

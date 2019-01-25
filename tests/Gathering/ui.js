@@ -7,6 +7,7 @@ UI.register({
 			login : '<<< Input {name = login}',
 			pass : '<<< Input {name = pass; type = password}',
 			rememberMe : '<<< Checkbox {name = remember-me; label = Remember me}',
+			text: '<<< Test [name = name]',
 			btn : '@button (html = Gather)',
 			output : '@pre'
 		}
@@ -117,5 +118,30 @@ UI.register({
 		}
 		
 		inst.input.val(params.hasOwnProperty('value') ? params.value : 'true');
+	}
+});
+
+
+
+UI.register({
+	name: 'Test',
+	
+	scheme: {
+		wrap: {
+			
+		}
+	},
+	
+	params: {
+		name: ''
+	},
+	
+	onRender(inst, params) {
+		if (params.name !== '') inst.wrap.attr('name', params.name);
+	},
+	
+	onGather(inst, data, event) {
+		data.value('this is test');
+		event.preventDefault();
 	}
 });

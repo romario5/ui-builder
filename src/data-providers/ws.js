@@ -1,3 +1,8 @@
+import addEventsMethods from '../utils/events-methods';
+import Data from '../core/data';
+import {warn} from '../utils/logging';
+
+
 /**
  * WebSocket data provider.
  * Established connection and provides methods and events
@@ -6,32 +11,30 @@
  * @param params
  * @constructor
  */
-function UIDataWS(params)
+export class WSData extends Data
 {
-	UIData.call(this, params);
-	this.ws = params.ws;
-	this.collector = UIWebSocketCollector;
+    constructor(params) {
+        super(params);
+        this.ws = params.ws;
+        this.collector = UIWebSocketCollector;
+    }
 }
-UIDataWS.prototype = Object.create(UIData.prototype);
-UIDataWS.prototype.constructor = UIData;
 
-// Add events to the UIDataAjax object globally.
-addEventsImplementation.call(UIDataWS);
+// Add events to the WSData object globally.
+addEventsMethods(WSData);
 
-_uibuilder.UIDataWS = UIDataWS;
 
 
 /**
- * Create custom data collector for the UIDataWS.
+ * Create custom data collector for the WSData.
  @param {function} callback
  */
 function UIWebSocketCollector(callback)
 {
-	var _this = this;
-	this.ws.send(this._parameters, function(data){
-		callback.call(_this, data);
-		_this.triggerEvent('dataready', _this, data);
-	});
+    this.ws.send(this._parameters, data => {
+        callback.call(this, data);
+        this.triggerEvent('dataReady', this, data);
+    });
 }
 
 
@@ -40,160 +43,159 @@ function UIWebSocketCollector(callback)
  * Represents WebSocket connection.
  * @params {object} params
  */
-function UIWebSocket(params)
+export function WS(params)
 {
-	if(!window.WebSocket){
-		console.warn('WebSocket is not supported by this browser.');
-	}
+    if(!window.WebSocket){
+        warn('WebSocket is not supported by this browser.');
+    }
 
-	var formats = [UIWebSocket.FORMAT_JSON, UIWebSocket.FORMAT_TOKENIZED_JSON, UIWebSocket.FORMAT_RAW];
+    let formats = [WS.FORMAT_JSON, WS.FORMAT_TOKENIZED_JSON, WS.FORMAT_RAW];
 
-	this.format = params.hasOwnProperty('format') && formats.indexOf(params.format) >= 0 ? params.format : UIWebSocket.FORMAT_TOKENIZED_JSON;
-	this.url = params.url;
-	this.authRequestMessage = params.authRequestMessage ? params.authRequestMessage : null;
-	this.authSuccessMessage = params.authSuccessMessage ? params.authSuccessMessage : 'authorized';
-	this.authFailMessage = params.authFailMessage ? params.authFailMessage : 'authorization failed';
-	this.conn = null;
-	this.authorized = false;
-	this.reconnectionInterval = params.reconnectionInterval ? params.reconnectionInterval : 5000;
-	this.tokens = {};
-	this.__ = {
-		events : {},
-		dispatchers: {}
-	}
+    this.format = params.hasOwnProperty('format') && formats.indexOf(params.format) >= 0 ? params.format : WS.FORMAT_TOKENIZED_JSON;
+    this.url = params.url;
+    this.authRequestMessage = params.authRequestMessage ? params.authRequestMessage : null;
+    this.authSuccessMessage = params.authSuccessMessage ? params.authSuccessMessage : 'authorized';
+    this.authFailMessage = params.authFailMessage ? params.authFailMessage : 'authorization failed';
+    this.conn = null;
+    this.authorized = false;
+    this.reconnectionInterval = params.reconnectionInterval ? params.reconnectionInterval : 5000;
+    this.tokens = {};
+    this.__ = {
+        events : {},
+        dispatchers: {}
+    }
 }
 
-UIWebSocket.FORMAT_JSON = 'json';
-UIWebSocket.FORMAT_TOKENIZED_JSON = 'tokenized-json';
-UIWebSocket.FORMAT_RAW = 'text';
+WS.FORMAT_JSON = 'json';
+WS.FORMAT_TOKENIZED_JSON = 'tokenized-json';
+WS.FORMAT_RAW = 'text';
 
 
-UIWebSocket.prototype = {};
-addEventsImplementation.call(UIWebSocket.prototype);
-_uibuilder.WS = UIWebSocket;
+WS.prototype = {};
+addEventsMethods(WS.prototype);
 
 
 /**
  * Events:
- * - onconnect
- * - ondisconnect
- * - onauthstart
- * - onauthsuccess
- * - onauthfail
- * - onmessage
- * - onresponse
- * - onsend
+ * - connect
+ * - disconnect
+ * - authStart
+ * - authSuccess
+ * - authFail
+ * - message
+ * - response
+ * - send
  */
-UIWebSocket.prototype.connect = function()
+WS.prototype.connect = function()
 {
-	if(this.conn !== null) return;
-	var conn = new WebSocket(this.url);
-	this.conn = conn;
+    if(this.conn !== null) return;
+    let conn = new WebSocket(this.url);
+    this.conn = conn;
 
-	var _this = this;
-	var ti;
+    let _this = this;
+    let ti;
 
-	// Handle connection establishing.
-	conn.onopen = function(){
-		if(_this.authRequestMessage !== null){
-			_this.conn.send(_this.authRequestMessage);
-		}
-		clearInterval(ti);
-		_this.triggerEvent('connect');
-	};
+    // Handle connection establishing.
+    conn.onopen = function(){
+        if(_this.authRequestMessage !== null){
+            _this.conn.send(_this.authRequestMessage);
+        }
+        clearInterval(ti);
+        _this.triggerEvent('connect');
+    };
 
-	// Handle losing connection and try to reconnect.
-	conn.onclose = function() {
-		_this.authorized = false;
-		_this.conn = null;
-		_this.tokens = {};
-		ti = setTimeout(function(){
-			_this.connect();
-		}, _this.reconnectionInterval);
-		_this.triggerEvent('disconnect');
-	};
+    // Handle losing connection and try to reconnect.
+    conn.onclose = function() {
+        _this.authorized = false;
+        _this.conn = null;
+        _this.tokens = {};
+        ti = setTimeout(function(){
+            _this.connect();
+        }, _this.reconnectionInterval);
+        _this.triggerEvent('disconnect');
+    };
 
-	// Handle incoming messages.
-	conn.onmessage = function (e) {
-		// Handle authorization if it's enabled.
-		if(_this.authRequestMessage !== null) {
-			if (e.data === _this.authSuccessMessage) {
-				_this.authorized = true;
-				_this.triggerEvent('authsuccess');
-				return;
-			} else if (e.data === _this.authFailMessage) {
-				_this.authorized = false;
-				_this.triggerEvent('authfail');
-				return;
-			}
-		}
+    // Handle incoming messages.
+    conn.onmessage = function (e) {
+        // Handle authorization if it's enabled.
+        if(_this.authRequestMessage !== null) {
+            if (e.data === _this.authSuccessMessage) {
+                _this.authorized = true;
+                _this.triggerEvent('authSuccess');
+                return;
+            } else if (e.data === _this.authFailMessage) {
+                _this.authorized = false;
+                _this.triggerEvent('authFail');
+                return;
+            }
+        }
 
-		// Trigger onmessage event if there is a raw message format is using.
-		if(_this.format === UIWebSocket.FORMAT_RAW){
-			_this.triggerEvent('message', e.data);
+        // Trigger onmessage event if there is a raw message format is using.
+        if(_this.format === WS.FORMAT_RAW){
+            _this.triggerEvent('message', e.data);
 
 
-		}else if(_this.format === UIWebSocket.FORMAT_JSON){
-			_this.triggerEvent('message', JSON.parse(e.data));
+        }else if(_this.format === WS.FORMAT_JSON){
+            _this.triggerEvent('message', JSON.parse(e.data));
 
-		}else if(_this.format === UIWebSocket.FORMAT_TOKENIZED_JSON) {
-			var data = JSON.parse(e.data);
-			if(!data.hasOwnProperty('Token')){
-				_this.triggerEvent('message', data);
-				return;
-			}
+        }else if(_this.format === WS.FORMAT_TOKENIZED_JSON) {
+            let data = JSON.parse(e.data);
+            if(!data.hasOwnProperty('Token')){
+                _this.triggerEvent('message', data);
+                return;
+            }
 
-			var token = data.Token;
-			delete data.Token;
+            let token = data.Token;
+            delete data.Token;
 
-			// Ignore unregistered tokens.
-			if(!_this.tokens.hasOwnProperty(token)){
-				return;
-			}
+            // Ignore unregistered tokens.
+            if(!_this.tokens.hasOwnProperty(token)){
+                return;
+            }
 
-			if(data.hasOwnProperty('Data')){
-				data = data.Data;
-			}
+            if(data.hasOwnProperty('Data')){
+                data = data.Data;
+            }
 
-			_this.triggerEvent('message', data);
-			_this.triggerEvent('response', data);
-			_this.tokens[token](data);
-			delete _this.tokens[token];
-		}
-	};
+            _this.triggerEvent('message', data);
+            _this.triggerEvent('response', data);
+            _this.tokens[token](data);
+            delete _this.tokens[token];
+        }
+    };
 };
 
 
 
-UIWebSocket.prototype.send = function(data, callback) {
-	if(this.conn === null) return;
-	var d = new WebSocketData(data);
-	this.tokens[d.token] = callback;
-	var dataWrapper = {data: d};
-	// Allow user to modify data sent.
-	this.triggerEvent('beforeSend', dataWrapper);
-	this.conn.send(JSON.stringify(dataWrapper.data));
-	this.triggerEvent('send', dataWrapper.data);
+WS.prototype.send = function(data, callback) {
+    if(this.conn === null) return;
+    let d = new Message(data);
+    this.tokens[d.token] = callback;
+    let dataWrapper = {data: d};
+    // Allow user to modify data sent.
+    this.triggerEvent('beforeSend', dataWrapper);
+    this.conn.send(JSON.stringify(dataWrapper.data));
+    this.triggerEvent('send', dataWrapper.data);
 };
 
 
 
 function randomId(length)
 {
-	var text = "";
-	var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	for( var i=0; i < length; i++ )
-		text += possible.charAt(Math.floor(Math.random() * possible.length));
-	return text;
+    let text = "";
+    let possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (let i=0; i < length; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    return text;
 }
 
 
 
-function WebSocketData(data)
+export function Message(data)
 {
-	this.token = randomId(12) + Date.now();
-	for(var p in data){
-		if(!data.hasOwnProperty(p)) continue;
-		this[p] = data[p];
-	}
+    this.token = randomId(12) + Date.now();
+    for(let p in data){
+        if(!data.hasOwnProperty(p)) continue;
+        this[p] = data[p];
+    }
 }

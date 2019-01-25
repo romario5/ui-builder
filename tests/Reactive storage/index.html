@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>UIBuilder | Tabs test</title>
+		<script src="../../dst/ui-builder.min.js"></script>
+		<script src="ui.js"></script>
+		<style>
+			section{
+				max-width: 800px;
+				padding: 10px;
+				margin: 10px;
+				position: relative;
+			}
+			p{ 
+				position: relative;
+				font-family: monospace;
+				margin-bottom: 15px;
+			}
+			h1{
+				margin-bottom: 10px ;
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="tasks"></div>
+        <script>
+
+            function ReactiveArray() {
+
+                var length;
+
+                Object.defineProperty(this, 'length', {
+                    enumerable: false,
+                    configurable: false,
+                    value: 0
+                });
+            }
+
+            ReactiveArray.prototype = {
+                constructor: Array
+            };
+
+
+            let keys = Object.getOwnPropertyNames(Array.prototype);
+            for (let i = 0; i < keys.length; i++) {
+                Object.defineProperty(ReactiveArray.prototype, keys[i], {
+                    enumerable: false,
+                    value: Array.prototype[keys[i]]
+                });
+            }
+
+            Object.defineProperty(ReactiveArray.prototype, Symbol.iterator, {
+                enumerable: false,
+                value: function(){
+
+                }
+            });
+
+            Object.defineProperty(ReactiveArray.prototype, Symbol.unscopables, {
+                enumerable: false,
+                value: function(){
+
+                }
+            });
+
+            let a = new ReactiveArray();
+            console.log(a);
+            console.log(Array.isArray(a));
+
+            UI('Tasks').renderTo('#tasks');
+        </script>
+	</body>
+<html/>

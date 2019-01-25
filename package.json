@@ -17,7 +17,9 @@
   "author": "Roman Muravchuk",
   "license": "MIT",
   "scripts": {
-    "build": "node scripts/build.js"
+    "build": "node scripts/build.js",
+    "build-nc": "node scripts/build-nc.js",
+    "example": "gulp --gulpfile scripts/example.js example"
   },
   "bugs": {
     "url": "https://github.com/Romario5/UIBuilder/issues"
@@ -31,9 +33,13 @@
     "gulp-uglify": "^3.0.0",
     "rollup": "^0.59.2",
     "rollup-plugin-babel": "^3.0.4",
+    "rollup-plugin-babel-minify": "^6.0.0",
+    "rollup-plugin-uglify": "^4.0.0",
     "uglify-js": "^2.7.5"
   },
-  "dependencies": {},
+  "dependencies": {
+    "npm": "^6.4.1"
+  },
   "directories": {
     "example": "example",
     "test": "tests"

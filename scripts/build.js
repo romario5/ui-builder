@@ -1,19 +1,24 @@
 const rollup = require('rollup');
-const babel = require("rollup-plugin-babel");
+const minify = require('rollup-plugin-babel-minify');
 
-let babelConf = {
-    "presets": ["es2015-rollup"]
+// see below for details on the options
+const inputOptions = {
+    input: './src/index.js',
+    plugins: [
+        minify({
+			comments: false
+        })
+    ]
+};
+const outputOptions = {
+    file: './dst/ui-builder.min.js',
+    format: 'iife',
+    sourcemap: true
 };
 
-let config = {
-    input: 'src-es6/index.js',
-    plugins: [ babel(babelConf) ]
-};
+async function build() {
+    const bundle = await rollup.rollup(inputOptions);
+    await bundle.write(outputOptions);
+}
 
-rollup.rollup(config)
-    .then(bundle => bundle.write({
-        file: 'dist/ui-builder-es6.js',
-        format: 'cjs'
-    }));
-
-
+build();
