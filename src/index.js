@@ -20,6 +20,8 @@ import extensionManager from './core/extension';
 import interfaceManager from './core/interface';
 import Identity from './modules/identity';
 import Format from './modules/format';
+import EventsChannel from './core/events-channel';
+
 import registerThrottleEventExtension from './built-in/extensions/throttle-event.ext';
 import registerPopoverExtension from './built-in/extensions/popover.ext';
 import registerNumberFilterExtension from './built-in/extensions/number-filter.ext';
@@ -70,6 +72,7 @@ Builder.Url = Url;
 Builder.Route = RouteManager;
 Builder.GlobalEvents = GlobalEvents;
 Builder.Animation = Animation;
+Builder.EventsChannel = EventsChannel;
 
 
 
@@ -79,40 +82,41 @@ Builder.Animation = Animation;
 // If you need to use something with another alias - make changes here.
 
 // Core.
-window.UI        = Builder;
-window.Extension = Builder.Extension;
-window.L10n      = Builder.L10n;
-window.Layout    = Builder.layout;
-window.Interface = Builder.Interface;
-window.Animation = Builder.Animation;
-window.GlobalEvents = Builder.GlobalEvents;
+window.UI            = Builder;
+window.Extension     = extensionManager;
+window.L10n          = L10n;
+window.Layout        = Layout;
+window.Interface     = interfaceManager;
+window.Animation     = Animation;
+window.GlobalEvents  = GlobalEvents;
+window.EventsChannel = EventsChannel;
 
 // Misc
-window.Animation = Builder.Animation;
+window.Animation = Animation;
 
 // Data providers.
-window.Data      = Builder.Data;
-window.DataAjax  = Builder.Ajax;
-window.Ajax      = Builder.Ajax;
-window.DataWS    = Builder.DataWS;
-window.WS        = Builder.WS;
-window.Storage   = Builder.Storage;
+window.Data      = Data;
+window.DataAjax  = Ajax;
+window.Ajax      = Ajax;
+window.DataWS    = WSData;
+window.WS        = WS;
+window.Storage   = Storage;
 
 // Themes support.
-window.Color     = Color;
+window.Color       = Color;
 window.StyleGetter = StyleGetter;
-window.Theme     = Builder.Theme;
+window.Theme       = themesManager;
 
 // Geometry helpers.
-window.Point     = Builder.Point;
-window.Rect      = Builder.Rect;
-window.Vector    = Builder.Vector;
+window.Point     = Point;
+window.Rect      = Rect;
+window.Vector    = Vector;
 
 // Modules.
-window.Identity  = Builder.Identity;
-window.Format    = Builder.Format;
-window.Route     = Builder.Route;
-window.Url       = Builder.Url;
+window.Identity  = Identity;
+window.Format    = Format;
+window.Route     = RouteManager;
+window.Url       = Url;
 window.URL       = URL;
 
 // Store mouse position.
