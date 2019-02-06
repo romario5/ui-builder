@@ -2,6 +2,7 @@ import uiRegistry from '../registries/ui-registry';
 import Element from './element';
 import Data from './data';
 import addEventsMethods from '../utils/events-methods';
+import extensionsManager from './extension';
 import {error, warn} from '../utils/logging';
 
 /**
@@ -17,6 +18,7 @@ export default function Instance(){
         writeable: false
     });
 
+    this.__.extensions = {};
     this.__.events = {};
     this.__.dispatchers = {};
     this.__.eventsTimeouts = {};
@@ -348,4 +350,86 @@ Instance.prototype.appendBefore = function (element) {
             }
         }
     }
+};
+
+
+
+
+
+/**
+ * Applies extension to the instance.
+ * Returns true if applying was successful.
+ * @returns {boolean}
+ */
+Instance.prototype.applyExtension = function (name, params) {
+    // Log warning if extension is already applied to the element.
+    if(this.__.extensions.hasOwnProperty(name)){
+        warn('Extension with name "' + name + '" is already applied to the instance.');
+        return false;
+    }
+
+    // Log error if requested extension is absent.
+    let ext = extensionsManager(name);
+    if(ext === null){
+        error('Extension with name "' + name + '" is not registered yet.');
+        return false;
+    }
+
+    this.__.extensions[name] = ext.applyTo(this, params);
+    return true;
+};
+
+
+/**
+ * Returns extension by name.
+ * @param name {string}
+ * @return {ExtensionInstance|null}
+ */
+Instance.prototype.extension = function (name) {
+    if(this.__.extensions.hasOwnProperty(name)){
+        return this.__.extensions[name];
+    }
+    return null;
+};
+
+/**
+ * Removes extension from the instance.
+ * Returns true if removing was successful.
+ * @param name {string}
+ * @returns {boolean}
+ */
+Instance.prototype.removeExtension = function (name) {
+    // Return false if extension with given name was not applied yet.
+    if(!this.__.extensions.hasOwnProperty(name)){
+        return false;
+    }
+
+    let ext = this.__.extensions[name];
+    if (ext.remove !== undefined) {
+        ext.remove();
+        delete this.__.extensions[name];
+        return true;
+    }
+
+    return false;
+};
+
+/**
+ * Tries to update extension with given name by passing new parameters.
+ * To make update possible extension must implement 'update' event handler.
+ * @param name {string} Name of the extension.
+ * @param params {object} Parameters to be updated.
+ * @return {boolean}
+ */
+Instance.prototype.updateExtension = function (name, params) {
+    // Return false if extension with given name was not applied yet.
+    if(!this.__.extensions.hasOwnProperty(name)){
+        return false;
+    }
+    let ext = this.__.extensions[name];
+    if (ext.update !== undefined) {
+        ext.update(params);
+        return true;
+    }
+    return false;
 };

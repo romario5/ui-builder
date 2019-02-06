@@ -59,10 +59,11 @@ export default function () {
                             cont.node().appendChild(dummy);
                         }
                     }
+                } else {
+                    // If no array loaded - toggle event with empty array to allow user
+                    // properly handle this situation: show some message or something else.
+                    cont.triggerEvent('loadMore', []);
                 }
-                // If no array loaded - toggle event with empty array to allow user
-                // properly handle this situation: show some message or something else.
-                cont.triggerEvent('loadMore', []);
             };
             cont.on('afterLoad', params.afterLoadHandler);
 
@@ -96,7 +97,7 @@ export default function () {
                     lastTime = Date.now();
 
                     // Load data.
-                    ajax.params(params).fetch(function(response){
+                    ajax.params(params).fetch(response => {
                         lastTime = Date.now();
                         if( ! Array.isArray(response) ) return;
                         if(response.length === 0){

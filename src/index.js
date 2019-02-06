@@ -21,6 +21,7 @@ import interfaceManager from './core/interface';
 import Identity from './modules/identity';
 import Format from './modules/format';
 import EventsChannel from './core/events-channel';
+import Settings from './core/settings';
 
 import registerThrottleEventExtension from './built-in/extensions/throttle-event.ext';
 import registerPopoverExtension from './built-in/extensions/popover.ext';
@@ -75,6 +76,15 @@ Builder.Animation = Animation;
 Builder.EventsChannel = EventsChannel;
 
 
+Builder.enableDevMode = function(enable) {
+    Settings.devMode = enable !== false;
+};
+
+
+
+Builder.enableLogging = function(enable) {
+    Settings.logging = enable !== false;
+};
 
 // ===================== GLOBAL VARIABLES =======================
 // Also export global variables.

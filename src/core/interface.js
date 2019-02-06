@@ -33,8 +33,10 @@ class Interface
      */
     implementedBy(obj) {
         for (let p in this.methods) {
-            if (!obj.hasOwnProperty(p) || typeof obj[p] !== 'function' || !this.methods[p].checkSignature(obj[p])) {
-                return false;
+            if (this.methods.hasOwnProperty(p)) {
+                if (typeof obj[p] !== 'function' || !this.methods[p].checkSignature(obj[p])) {
+                    return false;
+                }
             }
         }
         return true;

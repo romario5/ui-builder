@@ -184,6 +184,7 @@ Element.prototype.updateExtension = function (name, params) {
     if(!this.__.extensions.hasOwnProperty(name)){
         return false;
     }
+    let ext = this.__.extensions[name];
     if (ext.update !== undefined) {
         ext.update(params);
         return true;
@@ -542,7 +543,7 @@ Element.prototype.addOne = function (atStart, params) {
     if (typeof params !== 'object') {
         params = typeof atStart === 'object' ? atStart : this.__.childParams;
     }
-    atStart = typeof atStart === 'boolean' ? atStart : false;
+    atStart = atStart === true;
     if (this.__.child === null) return null;
     let ui = uiRegistry.get(this.__.child);
     if (ui === null) return null;

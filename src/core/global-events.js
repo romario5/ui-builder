@@ -20,7 +20,12 @@ import addEventsMethods from '../utils/events-methods';
  *      text: 'Hello world!'
  *  });
  *
+ *  GlobalEvents will be deleted in the next versions.
+ *  Please use EventsChannel instead.
+ *
  * @returns {string}
+ * @deprecated
+ * @see {EventsChannel}
  */
 export default function GlobalEvents()
 {

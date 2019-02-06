@@ -28,10 +28,10 @@
 				Click anywhere and ensure that all handlers receive events through channel (messages will be show in the console).
 			</p>
 			<script>
-				EventsChannel.getByName('test').on('click', () => console.log('Handler #1'));
-				let channel = new EventsChannel('test');
+				EventsChannel('test').on('click', () => console.log('Handler #1'));
+				let channel = EventsChannel('test');
 				channel.on('click', () => console.log('Handler #2'));
-                EventsChannel.getByName('test').on('click', () => console.log('Handler #3'));
+                EventsChannel('test').on('click', () => console.log('Handler #3'));
 
                 document.addEventListener('click', function() {
                     channel.triggerEvent('click');

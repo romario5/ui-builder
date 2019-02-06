@@ -265,7 +265,7 @@ L10n.loadTranslations = function(category, callback)
     }
 
     // If translations already loaded - return.
-    if(curTranslation.hasOwnProperty(category)){
+    if (curTranslation.hasOwnProperty(category)) {
         if(typeof callback === 'function'){
             let t = L10n.getTranslations(category);
             callback(t);
@@ -276,17 +276,25 @@ L10n.loadTranslations = function(category, callback)
     // Mark that category is loading yet.
     currentlyLoading[category] = true;
 
-    // Disable flag after 5 seconds to allow script to retry.
-    setTimeout(function() {
-        currentlyLoading[category] = null;
-    }, 5000);
+    // Disable flag after 10 seconds to allow script to retry.
+    let to = setTimeout(function() {
+        delete currentlyLoading[category];
+    }, 10000);
 
     // Runt translations loader.
     translationsLoader(category, function(){
+        delete currentlyLoading[category];
+        clearTimeout(to);
         let t = L10n.getTranslations(category);
+
+        if (translationsLoadingCallbacks.hasOwnProperty(category) && Array.isArray(translationsLoadingCallbacks[category])) {
+            for (let i = 0; i < translationsLoadingCallbacks[category].length; i++) {
+                translationsLoadingCallbacks[category][i](t);
+            }
+        }
+
         L10n.triggerEvent('categoryLoaded', t, category);
         if(typeof callback === 'function') {
-            delete currentlyLoading[category];
             callback(t);
         }
     });

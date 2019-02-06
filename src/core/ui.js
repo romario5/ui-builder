@@ -297,7 +297,7 @@ export default class UI
         }
 
         // Set flag if instance should be built at the start or at the end.
-        if (atStart !== true) atStart = false;
+        atStart = atStart === true;
 
         // Append root instance nodes to the container.
         let scheme = this.scheme;
