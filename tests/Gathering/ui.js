@@ -63,6 +63,18 @@ UI.register({
 		bg : '#fff',
 		border : 1
 	},
+
+	methods: {
+		val(value) {
+			return this.input.val(value);
+		},
+		name(value) {
+			if (value !== undefined) {
+				this.input.attr('name', value);
+            }
+            return this.input.attr('name');
+		}
+	},
 	
 	onrender : function(inst, params){
 		
@@ -105,6 +117,12 @@ UI.register({
 			fontFamily : 'sans-serif'
 		}
 	},
+
+	methods: {
+		checked() {
+			return this.input.prop('checked');
+		}
+	},
 	
 	onrender : function(inst, params){
 		
@@ -117,5 +135,75 @@ UI.register({
 		}
 		
 		inst.input.val(params.hasOwnProperty('value') ? params.value : 'true');
+	}
+});
+
+
+
+UI.register({
+    name: 'Block 1',
+
+    scheme: {
+        wrap: {
+			field: '<<< Input'
+        }
+    },
+
+    params: {
+    	name: 'block',
+        text: ''
+    },
+
+    onRender(inst, params) {
+        inst.field.inclusion().val(params.text);
+        inst.field.inclusion().name(params.name);
+    }
+});
+
+
+
+UI.register({
+	name: 'Test',
+	
+	scheme: {
+		wrap: {
+			blocks: '|Block 1 [name = name]',
+            compactData : '<<< Checkbox {label = Compact data}',
+            btn : '@button (html = Gather)',
+			output: '@pre'
+		}
+	},
+	
+	params: {
+		name: ''
+	},
+	
+	onRender(inst, params) {
+		if (params.name !== '') inst.wrap.attr('name', params.name);
+
+		for (let i = 1; i <= 10; i++) {
+            inst.blocks.addOne({text: 'Item ' + i});
+		}
+
+		inst.btn.on('click', inst => {
+            inst.output.text(JSON.stringify(inst.wrap.gatherData(inst.compactData.inclusion().checked())));
+        });
+	},
+
+	styles: {
+		wrap: {
+			blocks: {
+				' > *': {
+					marginBottom: '5px'
+				}
+			},
+
+			btn : {
+				margin: '10px 0 20px 0',
+				padding : '5px 15px',
+				fontSize : '14px',
+				fontFamily : 'sans-serif'
+			}
+		}
 	}
 });

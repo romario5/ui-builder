@@ -3,92 +3,64 @@
  */
 UI.register({
 	
-	name : 'Tabs',
+	name : 'Layout',
 	
 	scheme : {
 		wrap : {
-			tabs : '|Tabs-tab',
-			contents : '|Tabs-content'
+			tabsBar : '<<< Tabs'
 		}
 	},
 	
-	styles : {
-		wrap : {
-			margin: '15px 0'
-		},
-		tabs : {
-			display : 'flex',
-			padding: '0 10px',
-			borderBottom : '1px solid #ccc'
-		}
-	},
-	
-	onrender : function(inst, params, event)
-	{
-		inst.on('load', function(data, event){
-			event.preventDefault(); // Prevent default data loading process.
-			
-			for(var p in data){
-				var content = this.contents.addOne();
-				content.wrap.load(data[p]);
-				var tab = this.tabs.addOne().load(p).wrap.makeTabFor(content.wrap);
+	onRender(inst) {
+		let tabs = inst.tabsBar.inclusion();
+
+		inst.on('load', (data, event) => {
+			event.preventDefault();
+
+            let containerUI = UI('Data container');
+			for(let p in data){
+				if (data.hasOwnProperty(p)) {
+                    let tab = tabs.addTab(p);
+                    containerUI.renderTo(tab.getContent()).load(data[p]);
+				}
 			}
 		});
-	}
-});
-
-
-
-
-
-UI.register({
-	
-	name : 'Tabs-tab',
-	
-	scheme : {
-		wrap : ''
 	},
-	
-	styles : {
-		wrap : {
-			padding: '8px 15px',
-			border: '1px solid #ccc',
-			margin: '0 3px',
-			position: 'relative',
-			top: '1px',
-			cursor: 'default',
-			fontFamily: 'sans-serif',
-			fontSize: '14px',
-			backgroundColor : '#f9f9f9',
-			
-			':hover' : {
-				backgroundColor : '#f3f3f3'
-			},
-			
-			'.active' : {
-				borderBottom: '2px solid #ffffff',
-				backgroundColor : '#ffffff'
-			},
-			
-			
-		}
-	}
-});
 
-UI.register({
-	
-	name : 'Tabs-content',
-	
-	scheme : {
-		wrap : ''
-	}
+    styles: {
+	    wrap: {
+	        display: 'flex',
+            flexDirection: 'column',
+            margin: '15px 0',
+
+            tabsBar: {
+                display: 'flex',
+                flexDirection: 'column',
+
+                ' .labels': {
+                    display: 'flex'
+                },
+
+                ' .labels > *': {
+                    display: 'flex',
+                    padding: '0.5rem 1rem',
+                    margin: '0 0.25rem',
+                    border: '1px solid #ccc'
+                }
+            }
+        }
+    }
+
+
 });
 
 
 
+
+
+
 UI.register({
-	
-	name : 'Content',
+	name : 'Data container',
 	
 	scheme : {
 		wrap : {

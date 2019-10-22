@@ -1,15 +1,35 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>UIBuilder test - tasks list</title>
-    <link href="https://fonts.googleapis.com/css?family=Raleway:300" rel="stylesheet">
-</head>
-<body>
-<div id="container"></div>
-<script src="../dist/ui-builder.js"></script>
-<script src="ui.js"></script>
-<script>
-    var TasksList = UI('Tasks list').renderTo('#container', {width : 600, height : 400});
-</script>
-</body>
+    <head>
+        <title>UIBuilder test - tasks list</title>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css?family=Raleway:300" rel="stylesheet">
+        <script src="../dst/ui-builder.min.js"></script>
+        <script src="ui.js"></script>
+    </head>
+    <body>
+        <div id="container"></div>
+        <script>
+            Theme.switchTo('Default');
+            UI.createResetStyles({
+                '*': {
+                    margin: 0,
+                    padding: 0,
+                    fontFamily: 'sans-serif'
+                },
+                body: {
+                    backgroundColor: '#fff'
+                }
+            });
+
+            let modal = UI('Modal').render({width: '30rem'});
+
+            let tabs = UI('Horizontal tabs').renderTo(modal.content);
+            tabs.addTab('First').getContent().text('Content for First...');
+            tabs.addTab('Second').getContent().text('Content for Second...');
+            tabs.addTab('Third');
+
+            tabs.getContentFor('Third').text('Content for Third...');
+        </script>
+    </body>
 </html>

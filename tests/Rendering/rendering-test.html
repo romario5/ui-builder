@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>UIBuilder | Gathering test</title>
+		<script src="../../dist/ui-builder.js"></script>
+		<script src="ui.js"></script>
+		<style>
+			section{
+				padding: 10px;
+				margin: 10px;
+				position: relative;
+			}
+			p{ 
+				position: relative;
+				font-family: monospace;
+				margin-bottom: 15px ;
+			}
+			h1{
+				margin-bottom: 10px ;
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<section id="test-1">
+			<h1>Test 1: renderTo() method:</h1>
+			<script>
+				let instance_1 = UI('Example').renderTo('#test-1', {text: 1});
+			</script>
+		</section>
+		
+		<hr/>
+		
+		<section id="test-2">
+			<h1>Test 2: render() method:</h1>
+			<p>
+				Ensure that instance is appended directly into the body tag.
+			</p>
+			<script>
+				let instance_2 = UI('Example').render({text: 2});
+			</script>
+		</section>
+		
+		<hr/>
+		
+		<section id="test-3">
+			<h1>Test 3: prepare() method:</h1>
+			<p>
+				Ensure that instance is not appended into the document but displayed in the console.
+			</p>
+			<script>
+				let instance_3 = UI('Example').prepare({text: 3});
+				console.log(instance_3);
+			</script>
+		</section>
+		
+		<hr/>
+		
+		<section id="test-4">
+			<h1>Test 4: appendTo() method:</h1>
+			<p>
+				Ensure that instance is appended in the node with gray background.
+			</p>
+			<p id="test-4-container" style="background-color: #f0f0f0; padding: 10px"></p>
+			<script>
+				let instance_4 = UI('Example').prepare({text: 4});
+				instance_4.appendTo(document.getElementById('test-4-container'));
+			</script>
+		</section>
+		
+		<hr/>
+		
+		<section id="test-5">
+			<h1>Test 5: appendBefore() method:</h1>
+			<p>
+				Ensure that instance is appended in the node with gray background of the PREVIOUS test. Gray node below must be empty.
+			</p>
+			<p id="test-4-container" style="background-color: #f0f0f0; padding: 10px">This node must be empty.</p>
+			<script>
+				let instance_5 = UI('Example').prepare({text: 5});
+				instance_5.appendBefore(instance_4.wrap);
+			</script>
+		</section>
+		
+	</body>
+<html/>
