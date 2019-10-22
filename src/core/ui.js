@@ -10,6 +10,7 @@ import Extending from './extending';
 import interfaceManager from './interface';
 import uiRegistry from '../registries/ui-registry';
 import extendingsRegistry from '../registries/extendings-registry';
+import Namespace from './namespace';
 
 /**
  * @class
@@ -22,7 +23,16 @@ export default class UI
     constructor (options) {
         if (typeof options !== 'object') options = {};
 
-        this.namespace    = '';
+        this.namespace = options.namespace || null;
+
+        // Create events channel for the ui or its namespace.
+        if (this.namespace === null) {
+            this.channel = {};
+            addEventsMethods(this.channel);
+        } else {
+            this.channel = Namespace.getOrCreate(options.namespace).channel;
+        }
+
         this.elements     = {};
         this.scheme       = options.hasOwnProperty('scheme') ? options.scheme : {};
         this.rules        = options.hasOwnProperty('rules') ? options.rules : {};
@@ -170,7 +180,6 @@ export default class UI
     }
 
     prepare(params) {
-
         params = cloneSimpleObject(params);
 
         // Create new UI instance.

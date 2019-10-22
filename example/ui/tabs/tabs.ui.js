@@ -1,4 +1,8 @@
 UI.register('Horizontal tabs').extends('Tabs', {
+
+    namespace: 'Tasks list',
+
+
     styles: {
         wrap: {
             margin: '1rem',

@@ -76,15 +76,25 @@ Builder.Animation = Animation;
 Builder.EventsChannel = EventsChannel;
 
 
+Builder.inDevMode = function() {
+    return Settings.devMode;
+};
+
+
 Builder.enableDevMode = function(enable) {
     Settings.devMode = enable !== false;
 };
 
 
-
 Builder.enableLogging = function(enable) {
     Settings.logging = enable !== false;
 };
+
+
+Builder.loggingEnabled = function () {
+    return Settings.logging;
+};
+
 
 // ===================== GLOBAL VARIABLES =======================
 // Also export global variables.
@@ -134,11 +144,11 @@ window.UI.mouseX = 0;
 window.UI.mouseY = 0;
 
 window.UI.isTabletScreen = function() {
-    return window.innerWidth > 800 && window.innerWidth < 1024;
+    return document.body.clientWidth >= 640 && document.body.clientWidth < 1024;
 };
 
 window.UI.isPhoneScreen = function() {
-    return window.innerWidth > 240 && window.innerWidth < 640;
+    return document.body.clientWidth > 240 && document.body.clientWidth < 640;
 };
 
 document.addEventListener('mousemove', function(e) {

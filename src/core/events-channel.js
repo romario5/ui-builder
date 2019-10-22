@@ -38,8 +38,6 @@ addEventsMethods(EventsChannel.prototype);
 
 
 
-
-
 /**
  * Returns channel by name.
  * For example channel can be created in one place but must be accessed from another one.
@@ -65,3 +63,6 @@ export default function channelsManager (name) {
     channels[name] = channel;
     return channel;
 }
+
+
+

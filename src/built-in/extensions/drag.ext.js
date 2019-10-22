@@ -63,8 +63,9 @@ export default function registerDragExtension()
         },
 
         onRemove(ext) {
-            ext.target.off('mousedown', dragStartHandler);
-            ext.target.off('touchstart', dragStartHandler);
+            ext.params.handle.off('mousedown', dragStartHandler);
+            ext.params.handle.off('touchstart', dragStartHandler);
+            delete ext.params.handle.__.extensions['Drag'];
         },
 
         getDragged() {

@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<title>UIBuilder | Gathering test</title>
-		<script src="../../dst-es6/ui-builder.min.js"></script>
+		<script src="../../dst/ui-builder.min.js"></script>
 		<script src="ui.js"></script>
 		<style>
 			section{
@@ -29,8 +29,19 @@
 				Click "Gather" button to see what data will be gathered for the given form.
 			</p>
 			<script>
-				var cont = document.getElementById('test-1');
-				UI('Form 1').renderTo(cont);
+				UI('Form 1').renderTo('#test-1');
+			</script>
+		</section>
+
+
+		<section id="test-2">
+			<h1>Simple form example</h1>
+			<p>
+				Data gathering allows you to compose data structure of forms even if you use different UIs in the form.<br/>
+				Click "Gather" button to see what data will be gathered for the given form.
+			</p>
+			<script>
+				UI('Test').renderTo('#test-2');
 			</script>
 		</section>
 	</body>

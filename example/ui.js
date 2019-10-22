@@ -1,4 +1,11 @@
 UI.register('Horizontal tabs').extends('Tabs', {
+
+    namespace: 'Tasks list',
+
+    onRender() {
+        this.channel.triggerEvent('render');
+    },
+
     styles: {
         wrap: {
             margin: '1rem',

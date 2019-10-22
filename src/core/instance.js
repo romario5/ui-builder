@@ -33,6 +33,15 @@ addEventsMethods(Instance.prototype);
 
 
 /**
+ * Returns events channel for the UI namespace.
+ * @return {*}
+ */
+Instance.prototype.getChannel = function () {
+    return this.__.ui.channel;
+};
+
+
+/**
  * Checks if UI implements interface with given name.
  * @param interfaceName {string}
  * @return {boolean}

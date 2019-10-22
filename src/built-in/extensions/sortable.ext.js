@@ -150,17 +150,16 @@ export default function() {
 
             // Add events handlers to the newly added items.
             target.on('add', inst => {
-                let item = inst.getRootElement();
 
-                item.applyExtension('Drag', {
+                inst.applyExtension('Drag', {
                     withinParent: false,
                     x: params.x,
                     y: params.y
                 });
 
-                item.on('dragStart', params.dragStartHandler);
-                item.on('drag', params.dragHandler);
-                item.on('dragEnd', params.dropHandler);
+                inst.on('dragStart', params.dragStartHandler);
+                inst.on('drag', params.dragHandler);
+                inst.on('dragEnd', params.dropHandler);
             });
         },
         onRemove(ext) {

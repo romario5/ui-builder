@@ -1,4 +1,7 @@
 UI.register({
+
+    namespace: 'Tasks list',
+
     name : 'Tasks list',
 	
     scheme : {

@@ -55,7 +55,8 @@ export default function () {
             scrollingButtons : true, // If true - scrolling buttons will be shown.
             closeOnBlur : true,      // If true - modal will be closed when user clicks outside the modal.
             closeButton : true,      // If true - closing button (cross icon in the top right corner) will be shown.
-            skeleton: ''             // Name of the UI that will be displayed during loading process.
+            skeleton: '',            // Name of the UI that will be displayed during loading process.
+
         },
 
         methods : {
@@ -303,22 +304,9 @@ export default function () {
                 backgroundColor : 'transparent',
                 justifyContent : 'flex-start',
                 alignItems : 'center',
-                overflowY : 'scroll',
+                overflowY : 'auto',
                 zIndex : 1000,
                 transition : '0.75s',
-
-                '::-webkit-scrollbar-track' : {
-                    'backgroundColor' : '#fff'
-                },
-
-                '::-webkit-scrollbar' : {
-                    width : '8px',
-                    'backgroundColor' : 'transparent'
-                },
-
-                '::-webkit-scrollbar-thumb' : {
-                    backgroundColor: Theme('colors.primary').default('#000')
-                },
 
                 '.shown' : {
                     backgroundColor : 'rgba(0,0,0,0.25)'

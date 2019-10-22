@@ -62,7 +62,8 @@ let translations = {
     fr : {},
     jp : {},
     ko : {},
-    zh : {}
+    zh : {},
+    ua : {}
 };
 
 
@@ -81,7 +82,8 @@ let translators = {
     fr : {},
     jp : {},
     ko : {},
-    zh : {}
+    zh : {},
+    ua:  {}
 };
 
 /**
@@ -291,6 +293,7 @@ L10n.loadTranslations = function(category, callback)
             for (let i = 0; i < translationsLoadingCallbacks[category].length; i++) {
                 translationsLoadingCallbacks[category][i](t);
             }
+            delete translationsLoadingCallbacks[category];
         }
 
         L10n.triggerEvent('categoryLoaded', t, category);
@@ -326,6 +329,9 @@ L10n.registerTranslationsLoader = function(loader)
  * @returns {CategoryTranslator}
  */
 L10n.getTranslations = function(category) {
+    if (!translators.hasOwnProperty(language)) {
+        translators[language] = {};
+    }
     if(translators[language].hasOwnProperty(category)){
         return translators[language][category];
     }
@@ -348,6 +354,10 @@ L10n.getTranslations = function(category) {
         }
         return message;
     }
+
+    CategoryTranslator.getAll = function() {
+        return t;
+    };
 
     if(t !== curTranslation){
         translators[language][category] = CategoryTranslator;

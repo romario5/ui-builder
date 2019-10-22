@@ -1,6 +1,6 @@
 import addEventsMethods from '../utils/events-methods';
 import Data from '../core/data';
-import {warn} from '../utils/logging';
+import {warn, error} from '../utils/logging';
 
 
 /**
@@ -109,10 +109,14 @@ WS.prototype.connect = function()
         _this.authorized = false;
         _this.conn = null;
         _this.tokens = {};
-        ti = setTimeout(function(){
+        ti = setTimeout(function() {
             _this.connect();
         }, _this.reconnectionInterval);
         _this.triggerEvent('disconnect');
+    };
+
+    conn.onerror = function (e) {
+        error("WS connection error.", e);
     };
 
     // Handle incoming messages.

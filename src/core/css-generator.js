@@ -1,8 +1,12 @@
 import {parseParameters} from '../utils/ui-utils';
 import {makeClassName} from '../utils/strings';
+import stylesRegistry from '../registries/styles-registry';
 
 let cssGenerator = {
     generateUIStyles (ui) {
+        if (typeof ui.css === 'string') {
+            ui.css = stylesRegistry.get(ui.css);
+        }
         return generateCSS.call(ui, ui.css);
     },
 

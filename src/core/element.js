@@ -734,9 +734,18 @@ Element.prototype.addBefore = function (ui, item, params) {
  * with Element instances.
  * @returns {Element}
  */
-Element.prototype.html = function (html) {
+Element.prototype.html = function (html, runScripts) {
     if (html === undefined) return this.__.node.innerHTML;
     this.__.node.innerHTML = html;
+
+    if (runScripts === true) {
+        let scripts = html.match(/<script>(\n*.*\n*)*<\/script>/gi);
+        for (let i = 0; i < scripts.length; i++) {
+            let script = scripts[i].replace('<script>', '').replace('</script>', '');
+            eval(script);
+        }
+    }
+
     return this;
 };
 
@@ -1558,7 +1567,7 @@ function gatherElementData(target, data, curData, propName, gatherChildNodes) {
             }
         }
 
-        // Gather child instances.
+    // Gather child instances.
     } else if (target.hasChildUI()) {
         let res = [];
         if (name !== null || propName !== null) {
@@ -1576,11 +1585,15 @@ function gatherElementData(target, data, curData, propName, gatherChildNodes) {
                     res.push(tmp.value());
                 }
             }
-            if (name !== null) {
-                data[name] = res;
-            } else if (propName !== null) {
-                curData !== null ? curData[propName] = res : data[propName] = res;
-            }
+
+            data.value(res);
+            // if (name !== null) {
+            //     data[name] = res;
+            //     console.log('data');
+            // } else if (propName !== null) {
+            //     console.log('curData');
+            //     curData !== null ? curData[propName] = res : data[propName] = res;
+            // }
         }
 
 
